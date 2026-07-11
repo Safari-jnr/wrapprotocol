@@ -18,7 +18,7 @@ export function WagmiProvider({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={darkTheme({
-            accentColor: "#7c3aed", // violet-600 — Mork brand colour
+            accentColor: "#6366f1", // indigo-500 — accent brand colour
             accentColorForeground: "white",
             borderRadius: "medium",
           })}
