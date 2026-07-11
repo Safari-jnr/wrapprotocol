@@ -16,15 +16,16 @@ import { SOLANA_NETWORK } from "@/lib/constants";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export function SolanaProvider({ children }: { children: React.ReactNode }) {
-  // Only compute the endpoint on the client — clusterApiUrl must not run during SSR
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const endpoint = useMemo(() => {
     const env = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
     if (env && env.startsWith("http")) return env;
-    // Fallback — only safe to call on client
-    return clusterApiUrl(SOLANA_NETWORK);
+    return "https://api.devnet.solana.com"; // safe fallback — never empty
   }, []);
 
   const wallets = useMemo(
@@ -32,9 +33,17 @@ export function SolanaProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  // Don't render wallet context during SSR — avoids WalletContext errors
+  // During SSR / before hydration: render children inside a stub WalletProvider
+  // that has an empty wallet list — this satisfies the WalletContext requirement
+  // so WalletMultiButton doesn't throw, but no actual connection is attempted.
   if (!mounted) {
-    return <>{children}</>;
+    return (
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={[]} autoConnect={false}>
+          <WalletModalProvider>{children}</WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    );
   }
 
   return (
