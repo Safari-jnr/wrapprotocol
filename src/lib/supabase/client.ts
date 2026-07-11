@@ -1,5 +1,5 @@
-// Browser-side Supabase client (uses anon/public key only)
-import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
+// Browser-side Supabase client — uses @supabase/ssr (replaces auth-helpers-nextjs)
+import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./types";
 
 export function createClient() {

@@ -1,31 +1,32 @@
-// Server-side Supabase client (uses service-role key — NEVER exposed to browser)
-import { createServerClient, type CookieOptions } from "@supabase/auth-helpers-nextjs";
+// Server-side Supabase clients — uses @supabase/ssr (replaces auth-helpers-nextjs)
+// service-role key NEVER exposed to the browser
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
 
+/** Full-access client using service-role key — for API routes and indexer only */
 export async function createServerSupabaseClient() {
-  const cookieStore = await cookies(); // cookies() is async in Next.js 16
+  const cookieStore = await cookies(); // async in Next.js 16
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, // service-role — server only
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: "", ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
         },
       },
     }
   );
 }
 
-/** Read-only client for public data (uses anon key on server) */
+/** Read-only anon client — for server components reading public data */
 export async function createServerAnonClient() {
   const cookieStore = await cookies();
 
@@ -34,14 +35,13 @@ export async function createServerAnonClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: "", ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
         },
       },
     }
