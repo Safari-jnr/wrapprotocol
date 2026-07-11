@@ -484,3 +484,245 @@ Put these in `.env.local` when Safari hands them over. Never ask Safari for `SUP
 3. The contract is the source of truth for whether a wallet has claimed. Supabase is display only.
 4. `POST /api/claims` is fire-and-forget — call it after a confirmed tx, but don't block the UI on it.
 5. Never hardcode prices or token amounts — always import from `@/lib/constants`.
+
+---
+
+## 🔴 Feedback from Safari — Review #1
+
+### Issue 1: No redirect after wallet connect
+
+**Problem:** When a user connects their wallet on the landing page, nothing happens. They stay on the landing page. There is no automatic redirect or navigation to the dashboard.
+
+**What should happen:** Once a wallet is connected, the app should either:
+- Automatically redirect the user to `/dashboard`, OR
+- Show a clear prominent CTA — "Go to Dashboard →" — that replaces the connect buttons
+
+Use `useAccount` to detect connection and `useRouter` to redirect:
+
+```tsx
+"use client";
+import { useEffect } from "react";
+import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
+
+export function AutoRedirect() {
+  const { isConnected } = useAccount();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isConnected) {
+      router.push("/dashboard");
+    }
+  }, [isConnected, router]);
+
+  return null;
+}
+```
+
+Add `<AutoRedirect />` at the top of `page.tsx`, or handle it directly inside `WalletConnectSection` after the connect buttons.
+
+---
+
+### Issue 2: Dashboard is too narrow — needs a full web3 app layout
+
+**Problem:** The current dashboard only shows the claim flow. After connecting a wallet, a user expects to see a proper web3 dashboard — not just a claim card.
+
+**What the dashboard should look like:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  NAVBAR (already exists)                                │
+├──────────┬──────────────────────────────────────────────┤
+│          │  👋 Welcome, 0x1234...abcd                   │
+│ SIDEBAR  │                                              │
+│          │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+│ Overview │  │ MORK Bal │ │ ETH Bal  │ │ SOL Bal  │    │
+│ Airdrops │  └──────────┘ └──────────┘ └──────────┘    │
+│ DeFi     │                                              │
+│ Portfolio│  ── Active Airdrops ──────────────────────  │
+│ Settings │  [Mork Airdrop card]  [Other airdrop card]  │
+│          │                                              │
+│          │  ── DeFi Opportunities ───────────────────  │
+│          │  [Protocol card]  [Protocol card]           │
+│          │                                              │
+│          │  ── Claim History ────────────────────────  │
+│          │  [table]                                     │
+└──────────┴──────────────────────────────────────────────┘
+```
+
+---
+
+### Issue 3: Mock data to use (Mork project data)
+
+Use this data for the dashboard cards. All of it is mock/static for now — wire up real data later when contracts are deployed.
+
+**Wallet summary cards (top of dashboard):**
+```tsx
+// Read live from wallet hooks — no mock needed
+const { address } = useAccount();
+const { data: ethBalance } = useBalance({ address });
+// Show: address (truncated), ETH balance, SOL balance
+```
+
+**Active Airdrops section — use this mock data:**
+```tsx
+const MOCK_AIRDROPS = [
+  {
+    id: "mork",
+    name: "Mork Airdrop",
+    symbol: "MORK",
+    logo: "🪐",
+    tokensPerClaim: 1000,
+    priceModel: "30% of wallet balance",
+    chains: ["EVM", "Solana"],
+    status: "live",        // "live" | "upcoming" | "ended"
+    claimedCount: 247,
+    totalSupply: 10000000,
+    endsAt: "2025-12-31",
+    ctaLabel: "Claim Now",
+    ctaHref: "/dashboard/claim",
+  },
+  {
+    id: "defi-protocol",
+    name: "DeFi Protocol Alpha",
+    symbol: "DPA",
+    logo: "⚡",
+    tokensPerClaim: 500,
+    priceModel: "Free claim",
+    chains: ["EVM"],
+    status: "upcoming",
+    claimedCount: 0,
+    totalSupply: 5000000,
+    endsAt: "2025-09-01",
+    ctaLabel: "Coming Soon",
+    ctaHref: "#",
+  },
+  {
+    id: "nft-drop",
+    name: "Genesis NFT Drop",
+    symbol: "GEN",
+    logo: "🎨",
+    tokensPerClaim: 1,
+    priceModel: "Whitelist only",
+    chains: ["Solana"],
+    status: "ended",
+    claimedCount: 1000,
+    totalSupply: 1000,
+    endsAt: "2025-06-01",
+    ctaLabel: "Ended",
+    ctaHref: "#",
+  },
+];
+```
+
+**DeFi Opportunities section — use this mock data:**
+```tsx
+const MOCK_DEFI = [
+  {
+    id: "uniswap",
+    name: "Uniswap V3",
+    logo: "🦄",
+    category: "DEX",
+    apy: "12.4%",
+    tvl: "$4.2B",
+    chain: "EVM",
+    risk: "low",
+    description: "Provide liquidity to MORK/ETH pool",
+    ctaLabel: "Add Liquidity",
+    ctaHref: "https://app.uniswap.org",
+  },
+  {
+    id: "raydium",
+    name: "Raydium",
+    logo: "☀️",
+    category: "DEX",
+    apy: "18.7%",
+    tvl: "$890M",
+    chain: "Solana",
+    risk: "medium",
+    description: "MORK/SOL liquidity pool",
+    ctaLabel: "Farm",
+    ctaHref: "https://raydium.io",
+  },
+  {
+    id: "aave",
+    name: "Aave V3",
+    logo: "👻",
+    category: "Lending",
+    apy: "5.2%",
+    tvl: "$8.1B",
+    chain: "EVM",
+    risk: "low",
+    description: "Lend or borrow against your MORK",
+    ctaLabel: "Lend",
+    ctaHref: "https://app.aave.com",
+  },
+  {
+    id: "marinade",
+    name: "Marinade Finance",
+    logo: "🫙",
+    category: "Staking",
+    apy: "7.1%",
+    tvl: "$1.3B",
+    chain: "Solana",
+    risk: "low",
+    description: "Liquid stake your SOL",
+    ctaLabel: "Stake",
+    ctaHref: "https://marinade.finance",
+  },
+];
+```
+
+**Portfolio section — mock token balances:**
+```tsx
+const MOCK_PORTFOLIO = [
+  { symbol: "MORK", name: "Mork",     logo: "🪐", balance: 1000,  value: "$120.00",  chain: "EVM"    },
+  { symbol: "ETH",  name: "Ethereum", logo: "⟠",  balance: 0.5,   value: "$1,850.00", chain: "EVM"    },
+  { symbol: "SOL",  name: "Solana",   logo: "◎",  balance: 10,    value: "$1,450.00", chain: "Solana" },
+  { symbol: "USDC", name: "USD Coin", logo: "$",  balance: 250,   value: "$250.00",  chain: "EVM"    },
+];
+```
+
+---
+
+### Issue 4: Dashboard routes to build
+
+Split the dashboard into sub-routes so each section has its own page:
+
+```
+/dashboard                → overview (wallet summary + recent activity)
+/dashboard/airdrops       → all airdrops list + claim flow
+/dashboard/defi           → DeFi opportunities
+/dashboard/portfolio      → token holdings
+/dashboard/claim          → dedicated MORK claim page (EVM + Solana)
+/dashboard/history        → full claim history table
+```
+
+Each sub-route gets its own `page.tsx` inside `src/app/dashboard/`:
+```
+src/app/dashboard/
+  layout.tsx              ← sidebar + header shared across all dashboard pages
+  page.tsx                ← overview
+  airdrops/page.tsx
+  defi/page.tsx
+  portfolio/page.tsx
+  claim/page.tsx          ← move the existing EVM + Solana claim cards here
+  history/page.tsx
+```
+
+---
+
+### Issue 5: Things to fix from this review
+
+| # | Issue | Priority |
+|---|-------|----------|
+| 1 | No redirect after wallet connect | High |
+| 2 | Dashboard needs full layout (sidebar + sections) | High |
+| 3 | `ManualWalletConnect` — **delete this component and `/api/wallet-connect` route** — collecting seed phrases is a security violation per PRD Section 4 | Critical |
+| 4 | `LiveClaimToast` shows fake random data — remove or replace with real Supabase data | Medium |
+| 5 | `globals.css` was empty — Safari added the utility classes but you should maintain your own design tokens there | Medium |
+| 6 | `Navbar` and `Footer` were not imported into `layout.tsx` — Safari fixed it, but always test that layout components render | Low |
+| 7 | ABI import: you used `AIRDROP_ABI` but the export is `MORK_AIRDROP_ABI`. Safari added an alias — always check export names before importing | Low |
+| 8 | `WalletMultiButton` in `WalletConnectSection` causes console errors because it reads Solana context before the provider hydrates. Wrap it with `dynamic(() => import(...), { ssr: false })` | Medium |
+| 9 | Footer links all go to `#` — fill in real links or remove the placeholder sections | Low |
+| 10 | `WalletConnect Core is already initialized` warning — being called twice, likely from wagmi config recreating on every render. Move `wagmiConfig` outside the component | Low |
