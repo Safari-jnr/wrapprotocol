@@ -1,8 +1,8 @@
-// Landing page — Server Component by default
+// Landing page — Server Component
 import { Suspense } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { EmailSignIn } from "@/components/ui/EmailSignIn";
+import Link from "next/link";
 import { StatsBar } from "@/components/ui/StatsBar";
+import { LandingCTAs } from "@/components/ui/LandingCTAs";
 import {
   PROJECT_NAME,
   TOKEN_SYMBOL,
@@ -24,6 +24,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 space-y-24">
+
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="text-center space-y-6">
         <div className="text-6xl">🪐</div>
@@ -31,55 +32,90 @@ export default function HomePage() {
           {PROJECT_NAME}
         </h1>
         <p className="text-xl text-white/60 max-w-lg mx-auto">
-          Claim your {TOKENS_PER_CLAIM.toString()}{" "}
-          <span className="text-violet-300 font-semibold">{TOKEN_SYMBOL}</span>{" "}
-          by paying a fixed price. One claim per wallet. On-chain enforced.
+          Claim your{" "}
+          <span className="text-violet-300 font-semibold">
+            {TOKENS_PER_CLAIM.toString()} {TOKEN_SYMBOL}
+          </span>{" "}
+          by paying {PRICE_PERCENTAGE}% of your wallet balance.
+          One claim per wallet. On-chain enforced. EVM + Solana.
         </p>
 
         {/* Live stats */}
-        <Suspense fallback={<div className="h-16 animate-pulse rounded-xl bg-white/5" />}>
+        <Suspense
+          fallback={
+            <div className="h-16 animate-pulse rounded-xl bg-white/5" />
+          }
+        >
           <StatsBar />
         </Suspense>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <ConnectButton label="Connect Wallet" />
-          <span className="text-white/30 text-sm hidden sm:block">or</span>
-          <div className="w-full max-w-xs">
-            <EmailSignIn />
-          </div>
+        {/* CTAs — client component (needs wallet hooks) */}
+        <LandingCTAs />
+      </section>
+
+      {/* ── How it works ──────────────────────────────────────────────── */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-bold text-center">How it works</h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <StepCard
+            n="1"
+            title="Connect wallet"
+            body="Connect MetaMask, WalletConnect, or Coinbase Wallet for EVM — or Phantom / Solflare for Solana."
+          />
+          <StepCard
+            n="2"
+            title="Price is computed"
+            body={`We calculate ${PRICE_PERCENTAGE}% of your wallet balance. You see the exact amount before signing — no surprises.`}
+          />
+          <StepCard
+            n="3"
+            title="Sign & receive"
+            body={`One transaction. The contract sends ${TOKENS_PER_CLAIM.toString()} ${TOKEN_SYMBOL} to your wallet instantly.`}
+          />
+        </div>
+        <div className="text-center pt-2">
+          <Link
+            href="/dashboard"
+            className="inline-block rounded-xl bg-violet-600 px-8 py-3 font-bold text-white hover:bg-violet-500 transition-colors"
+          >
+            Go to Dashboard →
+          </Link>
         </div>
       </section>
 
-      {/* ── Tokenomics ────────────────────────────────────────────────── */}
+      {/* ── Token Info ────────────────────────────────────────────────── */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold text-center">Token Info</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <InfoCard
             title="Tokens per claim"
             value={`${TOKENS_PER_CLAIM.toString()} ${TOKEN_SYMBOL}`}
+            sub="Same amount on all chains"
           />
           <InfoCard
             title="Price model"
             value={`${PRICE_PERCENTAGE}% of your balance`}
-            sub="Computed at claim time from your wallet"
+            sub="Computed at claim time"
           />
           <InfoCard
             title="EVM price range"
             value={`${EVM_MIN_PRICE_ETH} – ${EVM_MAX_PRICE_ETH} ETH`}
-            sub="Floor / cap applied automatically"
+            sub={`${EVM_CHAIN.charAt(0).toUpperCase() + EVM_CHAIN.slice(1)} · floor / cap`}
           />
           <InfoCard
             title="Solana price range"
             value={`${solMin} – ${solMax} SOL`}
-            sub="Floor / cap applied automatically"
+            sub="Devnet/Mainnet · floor / cap"
           />
         </div>
       </section>
 
-      {/* ── Transparency ──────────────────────────────────────────────── */}
+      {/* ── Contracts ─────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-center">Contracts</h2>
+        <p className="text-center text-sm text-white/40">
+          The contract is the source of truth — this site is a display layer only.
+        </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <ContractCard
             chain="EVM"
@@ -100,23 +136,23 @@ export default function HomePage() {
         <div className="space-y-3">
           <FaqItem
             q="How much do I pay?"
-            a={`The price is ${PRICE_PERCENTAGE}% of your connected wallet's ETH (or SOL) balance, computed at the moment you click Claim. There is a small floor (${EVM_MIN_PRICE_ETH} ETH) and a cap (${EVM_MAX_PRICE_ETH} ETH) to protect very small or very large wallets. The exact amount is shown before you sign.`}
+            a={`${PRICE_PERCENTAGE}% of your connected wallet's balance (ETH or SOL), computed the moment you click Claim. There's a floor (${EVM_MIN_PRICE_ETH} ETH / ${solMin} SOL) and a cap (${EVM_MAX_PRICE_ETH} ETH / ${solMax} SOL). The exact amount is shown before you sign.`}
+          />
+          <FaqItem
+            q="Can I claim on both EVM and Solana?"
+            a="Yes — EVM and Solana are tracked separately. You can claim once on EVM with a connected EVM wallet, and once on Solana with a connected Solana wallet."
           />
           <FaqItem
             q="Do I need to paste my seed phrase?"
-            a="No. Never. This site uses standard wallet-connect only (MetaMask, WalletConnect, Phantom). Your private key never leaves your wallet. Any site that asks for a seed phrase is a scam."
+            a="No. Never. This site uses standard wallet-connect only. Your private key never leaves your wallet. Any site that asks for a seed phrase is a scam."
           />
           <FaqItem
             q="Can I claim more than once?"
-            a="No. The smart contract enforces one claim per wallet address. A second attempt will revert on-chain."
+            a="No. The smart contract enforces one claim per wallet address. A second attempt reverts on-chain."
           />
           <FaqItem
-            q="Where does the payment go?"
-            a="Directly to a multisig treasury wallet (Gnosis Safe for EVM, Squads for Solana). The website never holds funds."
-          />
-          <FaqItem
-            q="Is this an EVM or Solana airdrop?"
-            a="Both. Connect an EVM wallet (MetaMask, WalletConnect, Coinbase Wallet) or a Solana wallet (Phantom, Solflare)."
+            q="Where does my payment go?"
+            a="Directly to the project treasury wallet in the same transaction. This contract never holds funds."
           />
         </div>
       </section>
@@ -124,7 +160,19 @@ export default function HomePage() {
   );
 }
 
-// ── Sub-components (colocated, server-rendered) ─────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StepCard({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-2">
+      <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center text-xs font-bold text-white">
+        {n}
+      </div>
+      <p className="font-semibold text-white">{title}</p>
+      <p className="text-sm text-white/50 leading-relaxed">{body}</p>
+    </div>
+  );
+}
 
 function InfoCard({
   title,
@@ -153,13 +201,19 @@ function ContractCard({
   address: string;
   explorerUrl: string;
 }) {
-  const isPlaceholder = address.startsWith("0x000") || address === "11111111111111111111111111111111";
+  const isPlaceholder =
+    address.startsWith("0x000") ||
+    address === "11111111111111111111111111111111";
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-2">
-      <p className="text-xs text-white/40 uppercase tracking-wider">{chain} Contract</p>
+      <p className="text-xs text-white/40 uppercase tracking-wider">
+        {chain} Contract
+      </p>
       {isPlaceholder ? (
-        <p className="text-sm text-white/30 italic">Address TBD — deploy pending</p>
+        <p className="text-sm text-white/30 italic">
+          Address TBD — deploy pending
+        </p>
       ) : (
         <>
           <p className="font-mono text-xs text-white/70 break-all">{address}</p>
@@ -182,7 +236,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <details className="group rounded-xl border border-white/10 bg-white/5 px-5 py-4 cursor-pointer">
       <summary className="font-semibold text-white/80 list-none flex justify-between items-center">
         {q}
-        <span className="text-white/30 group-open:rotate-180 transition-transform">▾</span>
+        <span className="text-white/30 group-open:rotate-180 transition-transform">
+          ▾
+        </span>
       </summary>
       <p className="mt-3 text-sm text-white/50 leading-relaxed">{a}</p>
     </details>
