@@ -47,7 +47,10 @@ create trigger on_auth_user_created
 
 -- ─── linked_wallets ───────────────────────────────────────────────────────────
 -- An email-authed user can link one or more wallet addresses.
-create type if not exists public.chain_type as enum ('evm', 'solana');
+do $$ begin
+  create type public.chain_type as enum ('evm', 'solana');
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists public.linked_wallets (
   id             uuid primary key default uuid_generate_v4(),
