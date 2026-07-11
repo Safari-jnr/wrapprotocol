@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
     "eth-json-rpc-filters",
     "json-rpc-random-id",
   ],
+
+  // Keep these packages server-side only — they use browser APIs (indexedDB,
+  // localStorage) that don't exist in the Node.js SSR environment.
+  serverExternalPackages: [
+    "@walletconnect/core",
+    "@walletconnect/sign-client",
+    "@walletconnect/universal-provider",
+    "@reown/appkit",
+  ],
 };
 
 export default nextConfig;

@@ -25,6 +25,11 @@ export default function RootLayout({
         className="min-h-screen flex flex-col"
         style={{ backgroundColor: "var(--color-surface-950)" }}
       >
+        {/*
+          WagmiProvider → SolanaProvider → SupabaseProvider order matters.
+          All are "use client" components so they hydrate on the client.
+          suppressHydrationWarning on body prevents wallet adapter SSR mismatches.
+        */}
         <WagmiProvider>
           <SolanaProvider>
             <SupabaseProvider>
