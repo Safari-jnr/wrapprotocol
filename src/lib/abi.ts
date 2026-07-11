@@ -71,3 +71,6 @@ export const MORK_AIRDROP_ABI = [
     ],
   },
 ] as const;
+
+// Alias used by Mide's frontend components
+export const AIRDROP_ABI = MORK_AIRDROP_ABI;

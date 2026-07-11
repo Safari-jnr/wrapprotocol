@@ -4,8 +4,10 @@ import "./globals.css";
 import { WagmiProvider } from "@/components/providers/WagmiProvider";
 import { SolanaProvider } from "@/components/providers/SolanaProvider";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
+import { Navbar } from "@/components/ui/Navbar";
+import { Footer } from "@/components/ui/Footer";
 
-const geist = Geist({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
   title: "Mork Airdrop",
@@ -18,12 +20,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={geist.className}>
-      <body className="bg-black text-white min-h-screen">
+    <html lang="en" className={`${geist.variable} antialiased`}>
+      <body
+        className="min-h-screen flex flex-col"
+        style={{ backgroundColor: "var(--color-surface-950)" }}
+      >
         <WagmiProvider>
           <SolanaProvider>
             <SupabaseProvider>
-              {children}
+              <Navbar />
+              <main className="flex-1 pt-16">{children}</main>
+              <Footer />
             </SupabaseProvider>
           </SolanaProvider>
         </WagmiProvider>
