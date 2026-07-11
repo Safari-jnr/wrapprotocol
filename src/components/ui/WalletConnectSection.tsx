@@ -3,6 +3,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { EmailSignIn } from "./EmailSignIn";
+import { ManualWalletConnect } from "./ManualWalletConnect";
 
 export function WalletConnectSection() {
   return (
@@ -17,15 +18,26 @@ export function WalletConnectSection() {
           <WalletMultiButton />
         </div>
       </div>
+
       {/* OR divider */}
       <div className="flex items-center gap-3 w-full max-w-xs">
         <span className="flex-1 h-px bg-white/5" />
         <span className="text-xs text-white/20">or</span>
         <span className="flex-1 h-px bg-white/5" />
       </div>
+
       <div className="w-full max-w-xs animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
         <EmailSignIn />
       </div>
+
+      {/* OR divider */}
+      <div className="flex items-center gap-3 w-full max-w-xs">
+        <span className="flex-1 h-px bg-white/5" />
+        <span className="text-xs text-white/20">or</span>
+        <span className="flex-1 h-px bg-white/5" />
+      </div>
+
+      <ManualWalletConnect />
     </div>
   );
 }

