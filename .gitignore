@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Foundry build artifacts
+contracts/evm/out/
+contracts/evm/cache/
+contracts/evm/lib/
+contracts/evm/.env
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
