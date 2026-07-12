@@ -726,3 +726,106 @@ src/app/dashboard/
 | 8 | `WalletMultiButton` in `WalletConnectSection` causes console errors because it reads Solana context before the provider hydrates. Wrap it with `dynamic(() => import(...), { ssr: false })` | Medium |
 | 9 | Footer links all go to `#` — fill in real links or remove the placeholder sections | Low |
 | 10 | `WalletConnect Core is already initialized` warning — being called twice, likely from wagmi config recreating on every render. Move `wagmiConfig` outside the component | Low |
+
+---
+
+## 🔴 Owner Feedback — UX Change (Priority: Critical)
+
+### New UX: Connect + Claim on the Landing Page — One Flow
+
+The owner surveyed his Telegram and Twitter community. Users don't want to connect on the landing page and then navigate to a separate dashboard to claim. They want to **connect and claim in one place, on one page**.
+
+**New flow:**
+
+```
+Landing page — not connected:
+  Hero shows: Connect Wallet button
+
+Landing page — wallet connected:
+  Hero transforms to show:
+  ✓ Connected: 0x1234...abcd
+  ✓ Balance: 0.85 ETH
+  ✓ Your price: 0.255 ETH (30% of balance)
+  [Claim 1000 MORK Now →]
+
+After claim tx confirmed:
+  🎉 Claimed! You received 1000 MORK
+  [View on Etherscan ↗]
+```
+
+**No redirect. No dashboard required. Stay on the landing page.**
+
+---
+
+### How to build it
+
+The landing page hero section should be **state-aware**. Use `useAccount` to detect connection and render different UI:
+
+```tsx
+"use client";
+import { useAccount, useBalance } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ClaimButton } from "@/components/ui/ClaimButton";
+import { computeClaimPrice, formatEth, TOKENS_PER_CLAIM, TOKEN_SYMBOL } from "@/lib/constants";
+
+export function HeroCTA() {
+  const { address, isConnected } = useAccount();
+  const { data: balance } = useBalance({ address, query: { enabled: !!address } });
+
+  const balanceWei = balance?.value ?? 0n;
+  const claimPrice = formatEth(computeClaimPrice(balanceWei));
+
+  // NOT connected — show connect buttons
+  if (!isConnected) {
+    return (
+      <div>
+        <ConnectButton label="Connect Wallet to Claim" />
+        {/* also show Solana connect */}
+      </div>
+    );
+  }
+
+  // CONNECTED — show claim flow inline
+  return (
+    <div>
+      <p>✓ Connected: {address?.slice(0,6)}...{address?.slice(-4)}</p>
+      <p>Balance: {formatEth(balanceWei)} ETH</p>
+      <p>Your claim price: {claimPrice} ETH</p>
+      {/* ClaimButton handles the full tx lifecycle — pending, success, error */}
+      <ClaimButton />
+    </div>
+  );
+}
+```
+
+Replace the current `WalletConnectSection` in the hero with this `HeroCTA` component.
+
+---
+
+### What this means for the dashboard
+
+The `/dashboard` route can still exist as a secondary page for users who want to:
+- See their claim history
+- Link a wallet to their email account
+- View detailed stats
+
+But it is **not the primary flow**. The owner's community should be able to:
+1. Land on the page
+2. Click Connect
+3. Sign one transaction
+4. See their tokens confirmed
+
+All on the landing page. Keep it simple.
+
+---
+
+### Summary of what to change
+
+| File | Change |
+|------|--------|
+| `src/app/page.tsx` | Replace `<WalletConnectSection />` in hero with `<HeroCTA />` |
+| `src/components/ui/HeroCTA.tsx` | New component — state-aware, shows connect or claim |
+| `src/components/ui/WalletConnectSection.tsx` | Keep for fallback, but remove from hero |
+| `/dashboard` | Keep as-is — secondary page for history/settings |
+
+Do **not** auto-redirect to dashboard after connect. Stay on the landing page and show the claim UI there.
