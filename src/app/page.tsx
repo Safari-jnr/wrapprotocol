@@ -1,10 +1,17 @@
 // Landing page — Server Component by default
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { StatsBar } from "@/components/ui/StatsBar";
-import { WalletConnectSection } from "@/components/ui/WalletConnectSection";
 import { HeroCTA } from "@/components/ui/HeroCTA";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
 import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
+
+// WalletConnectSection uses WalletMultiButton which needs client-only rendering
+// Keeping it on the page so Mide can see ManualWalletConnect
+const WalletConnectSection = dynamic(
+  () => import("@/components/ui/WalletConnectSection").then(m => ({ default: m.WalletConnectSection })),
+  { ssr: false }
+);
 import {
   PROJECT_NAME,
   TOKEN_SYMBOL,
@@ -262,6 +269,17 @@ export default function HomePage() {
             </p>
           </div>
           <FeedbackSection />
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════
+            MIDE REVIEW — WalletConnectSection (contains ManualWalletConnect)
+            Safari: leave this section visible for Mide to see his work
+           ══════════════════════════════════════════════════════════════ */}
+        <section className="py-12 space-y-4 max-w-sm mx-auto">
+          <p className="text-center text-xs text-white/20 uppercase tracking-wider">
+            Alternative connect options
+          </p>
+          <WalletConnectSection />
         </section>
 
       </div>
