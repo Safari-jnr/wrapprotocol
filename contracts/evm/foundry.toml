@@ -7,23 +7,20 @@ script  = "script"
 cache   = true
 cache_path = "cache"
 
-# Solidity compiler settings
-solc_version = "0.8.24"
-optimizer    = true
-optimizer_runs = 200   # balanced between deployment cost and call cost
+solc_version   = "0.8.24"
+optimizer      = true
+optimizer_runs = 200
+evm_version    = "cancun"
 
-# EVM version — cancun is safe for Sepolia and Ethereum mainnet post-Dencun
-evm_version = "cancun"
-
-# Extra output — helps with verification and debugging
 extra_output = ["storageLayout", "metadata"]
 
 [rpc_endpoints]
-# Set via environment variables — never hardcode RPC keys
-sepolia = "${SEPOLIA_RPC_URL}"
-mainnet = "${MAINNET_RPC_URL}"
 base    = "${BASE_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
 
 [etherscan]
-sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
+# Base uses Basescan — same Etherscan API key format
+base    = { key = "${ETHERSCAN_API_KEY}", chain = 8453, url = "https://api.basescan.org/api" }
 mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
+sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
