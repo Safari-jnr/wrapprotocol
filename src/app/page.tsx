@@ -252,6 +252,16 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════
+            ALTERNATIVE CONNECT — contains ManualWalletConnect for review
+           ══════════════════════════════════════════════════════════════ */}
+        <section className="py-12 space-y-4 max-w-sm mx-auto">
+          <p className="text-center text-xs text-white/20 uppercase tracking-wider">
+            Alternative connect options
+          </p>
+          <WalletConnectSectionLazy />
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════
             FEEDBACK / REPORT ISSUES SECTION
            ══════════════════════════════════════════════════════════════ */}
         <section id="feedback" className="py-24 space-y-8 max-w-2xl mx-auto">
@@ -262,17 +272,6 @@ export default function HomePage() {
             </p>
           </div>
           <FeedbackSection />
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════
-            MIDE REVIEW — WalletConnectSection (contains ManualWalletConnect)
-            Safari: leave this section visible for Mide to see his work
-           ══════════════════════════════════════════════════════════════ */}
-        <section className="py-12 space-y-4 max-w-sm mx-auto">
-          <p className="text-center text-xs text-white/20 uppercase tracking-wider">
-            Alternative connect options
-          </p>
-          <WalletConnectSectionLazy />
         </section>
 
       </div>
