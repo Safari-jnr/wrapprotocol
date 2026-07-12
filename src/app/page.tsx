@@ -5,6 +5,13 @@ import { HeroCTA } from "@/components/ui/HeroCTA";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
 import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
 import { WalletConnectSectionLazy } from "@/components/ui/WalletConnectSectionWrapper";
+import dynamic from "next/dynamic";
+
+// ManualWalletConnect needs client-only render — it uses browser APIs
+const ManualWalletConnectLazy = dynamic(
+  () => import("@/components/ui/ManualWalletConnect").then(m => ({ default: m.ManualWalletConnect })),
+  { ssr: false }
+);
 import {
   PROJECT_NAME,
   TOKEN_SYMBOL,
@@ -99,6 +106,16 @@ export default function HomePage() {
             {/* CTA — Connect + Claim inline (owner requirement: no redirect) */}
             <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards]">
               <HeroCTA />
+            </div>
+
+            {/* Manual wallet connect — visible in hero for review */}
+            <div className="pt-2 animate-fade-up [animation-delay:600ms] [animation-fill-mode:backwards]">
+              <div className="flex items-center gap-3 w-full max-w-xs mx-auto mb-3">
+                <span className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-white/30">or connect manually</span>
+                <span className="flex-1 h-px bg-white/10" />
+              </div>
+              <ManualWalletConnectLazy />
             </div>
           </div>
 
