@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { WalletConnectSection } from "@/components/ui/WalletConnectSection";
+import { HeroCTA } from "@/components/ui/HeroCTA";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
 import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
 import {
@@ -95,9 +96,9 @@ export default function HomePage() {
               </Suspense>
             </div>
 
-            {/* CTA — Wallet Connect + Email Sign In (client component) */}
+            {/* CTA — Connect + Claim inline (owner requirement: no redirect) */}
             <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards]">
-              <WalletConnectSection />
+              <HeroCTA />
             </div>
           </div>
 
