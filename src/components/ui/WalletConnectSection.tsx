@@ -37,6 +37,7 @@ export function WalletConnectSection() {
         <span className="flex-1 h-px bg-white/5" />
       </div>
 
+      {/* ManualWalletConnect — Safari: kept here for review only */}
       <ManualWalletConnect />
     </div>
   );
