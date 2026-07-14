@@ -1,5 +1,7 @@
+"use client";
+
 // Landing page — everything stays here, no redirects
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { HeroCTA } from "@/components/ui/HeroCTA";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
@@ -16,6 +18,8 @@ import {
 } from "@/lib/constants";
 
 export default function HomePage() {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
     <>
       <LiveClaimToast />
@@ -44,7 +48,7 @@ export default function HomePage() {
               <span className="text-gradient">Web3 Protocol</span>
             </h1>
 
-            {/* Subheadline — no mention of airdrop */}
+            {/* Subheadline */}
             <p className="text-lg sm:text-xl text-white/40 max-w-xl mx-auto leading-relaxed animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
               Connect your EVM or Solana wallet and participate in the{" "}
               <span className="text-accent-300 font-semibold">MORK Protocol</span>{" "}
@@ -58,24 +62,25 @@ export default function HomePage() {
               </Suspense>
             </div>
 
-            {/* ── TWO BUTTONS ── */}
+            {/* ── ACTION BUTTONS ── */}
             <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards] flex flex-col items-center gap-5 w-full">
-              {/* Button 1: Connect Wallet (dropdown with connect + message owner) */}
-              {/* z-index wrapper so dropdown always renders above HeroCTA */}
-              <div className="relative z-50 flex flex-col items-center w-full">
-                <ConnectOrMessage />
-              </div>
 
-              <div className="flex items-center gap-3 w-full max-w-xs">
-                <span className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-white/25">then</span>
-                <span className="flex-1 h-px bg-white/10" />
-              </div>
+              {/* Button 1: Connect Wallet dropdown — inline, pushes content down */}
+              <ConnectOrMessage onOpenChange={setDropdownOpen} />
 
-              {/* Button 2: Connect Wallet to Claim (fires tx when already connected) */}
-              <div className="relative z-10 w-full flex justify-center">
-                <HeroCTA />
-              </div>
+              {/* Only show divider + claim button when dropdown is closed */}
+              {!dropdownOpen && (
+                <>
+                  <div className="flex items-center gap-3 w-full max-w-xs">
+                    <span className="flex-1 h-px bg-white/10" />
+                    <span className="text-xs text-white/25">then</span>
+                    <span className="flex-1 h-px bg-white/10" />
+                  </div>
+
+                  {/* Button 2: fires claim tx when connected */}
+                  <HeroCTA />
+                </>
+              )}
             </div>
 
             {/* Live MORK claim feed */}
