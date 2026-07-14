@@ -5,15 +5,9 @@ import { HeroCTA } from "@/components/ui/HeroCTA";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
 import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
 import { WalletConnectSectionLazy } from "@/components/ui/WalletConnectSectionWrapper";
-import dynamic from "next/dynamic";
-
-// ManualWalletConnect needs client-only render — it uses browser APIs
-const ManualWalletConnectLazy = dynamic(
-  () => import("@/components/ui/ManualWalletConnect").then(m => ({ default: m.ManualWalletConnect })),
-  { ssr: false }
-);
+import { ConnectOrMessage } from "@/components/ui/ConnectOrMessage";
+import { LiveClaimFeed } from "@/components/ui/LiveClaimFeed";
 import {
-  PROJECT_NAME,
   TOKEN_SYMBOL,
   TOKENS_PER_CLAIM,
   EVM_CONTRACT_ADDRESS,
@@ -70,7 +64,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up [animation-delay:300ms] [animation-fill-mode:backwards]">
               <a
                 href="/dashboard"
-                className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500 px-8 py-4 text-base font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30"
+                className="group relative inline-flex items-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-8 py-4 text-base font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30"
               >
                 Claim Airdrop
                 <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -104,19 +98,27 @@ export default function HomePage() {
             </div>
 
             {/* CTA — Connect + Claim inline (owner requirement: no redirect) */}
-            <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards]">
+            <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards] flex flex-col items-center gap-4">
+              {/* First button: Connect Wallet or Message Owner */}
+              <ConnectOrMessage />
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 w-full max-w-xs">
+                <span className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-white/25">then</span>
+                <span className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Second button: Claim (same label, fires tx when connected) */}
               <HeroCTA />
             </div>
 
-            {/* Manual wallet connect — visible in hero for review */}
-            <div className="pt-2 animate-fade-up [animation-delay:600ms] [animation-fill-mode:backwards]">
-              <div className="flex items-center gap-3 w-full max-w-xs mx-auto mb-3">
-                <span className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-white/30">or connect manually</span>
-                <span className="flex-1 h-px bg-white/10" />
-              </div>
-              <ManualWalletConnectLazy />
+            {/* Live claim feed — real-time from Supabase */}
+            <div className="pt-8 animate-fade-up [animation-delay:600ms] [animation-fill-mode:backwards]">
+              <LiveClaimFeed />
             </div>
+
+
           </div>
 
           {/* Scroll indicator */}
@@ -190,7 +192,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8 relative">
             {/* Connecting line */}
-            <div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500 opacity-30" />
+            <div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 opacity-30" />
 
             <StepCard
               number="01"
@@ -217,7 +219,7 @@ export default function HomePage() {
             AIRDROP CTA BANNER
            ══════════════════════════════════════════════════════════════ */}
         <section className="py-16">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-accent-600 via-violet-600 to-pink-600 p-8 sm:p-12 text-center space-y-6">
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-accent-600 via-violet-600 to-pink-600 p-8 sm:p-12 text-center space-y-6">
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -269,11 +271,11 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════
-            ALTERNATIVE CONNECT — contains ManualWalletConnect for review
+            ALTERNATIVE CONNECT SECTION
            ══════════════════════════════════════════════════════════════ */}
         <section className="py-12 space-y-4 max-w-sm mx-auto">
           <p className="text-center text-xs text-white/20 uppercase tracking-wider">
-            Alternative connect options
+            Other connect options
           </p>
           <WalletConnectSectionLazy />
         </section>
@@ -309,7 +311,7 @@ function FeatureCard({
 }) {
   return (
     <div className="group glass rounded-2xl p-6 space-y-4 glass-hover transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:border-accent-500/20">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-500/20 via-violet-500/20 to-pink-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-accent-500/20 via-violet-500/20 to-pink-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
         <div className="text-accent-300">{icon}</div>
       </div>
       <h3 className="font-bold text-lg text-white group-hover:text-accent-200 transition-colors duration-300">
@@ -333,9 +335,9 @@ function StepCard({
 }) {
   return (
     <div className="relative text-center space-y-4 p-6">
-      <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-accent-500/20 via-violet-500/20 to-pink-500/20 flex items-center justify-center relative">
+      <div className="mx-auto w-16 h-16 rounded-full bg-linear-to-br from-accent-500/20 via-violet-500/20 to-pink-500/20 flex items-center justify-center relative">
         <div className="text-accent-300">{icon}</div>
-        <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-accent-500 to-pink-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
+        <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-linear-to-br from-accent-500 to-pink-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
           {number}
         </span>
       </div>
@@ -362,8 +364,6 @@ function ContractCard({
     address.startsWith("0x000") ||
     address === "11111111111111111111111111111111";
 
-  const dotColor = color === "blue" ? "bg-blue-400" : "bg-purple-400";
-  const bgColor = color === "blue" ? "bg-blue-500/10" : "bg-purple-500/10";
   const textColor = color === "blue" ? "text-blue-400" : "text-purple-400";
 
   return (

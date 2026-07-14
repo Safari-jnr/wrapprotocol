@@ -4,7 +4,7 @@
 import { createServerAnonClient } from "@/lib/supabase/server";
 import { EVM_EXPLORER, EVM_CHAIN, SOLANA_EXPLORER_BASE } from "@/lib/constants";
 
-export async function ClaimHistory() {
+export async function ClaimHistory({ limit = 20 }: { limit?: number }) {
   const supabase = await createServerAnonClient();
 
   type ClaimRow = {
@@ -20,7 +20,7 @@ export async function ClaimHistory() {
 
   const { data: claims, error } = await (supabase.from("claims").select("*")
     .order("claimed_at", { ascending: false })
-    .limit(10)) as unknown as {
+    .limit(limit)) as unknown as {
     data: ClaimRow[] | null;
     error: unknown;
   };
@@ -42,7 +42,7 @@ export async function ClaimHistory() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/5 bg-white/[0.02]">
+            <tr className="border-b border-white/5 bg-white/2">
               <th className="px-4 py-3 text-left text-xs text-white/30 font-medium uppercase tracking-wider">
                 Wallet
               </th>
@@ -67,7 +67,7 @@ export async function ClaimHistory() {
               return (
                 <tr
                   key={claim.id}
-                  className="border-b border-white/5 transition-colors duration-150 hover:bg-white/[0.02]"
+                  className="border-b border-white/5 transition-colors duration-150 hover:bg-white/2"
                 >
                   <td className="px-4 py-3 font-mono text-xs text-white/40">
                     {claim.wallet_address.slice(0, 6)}&hellip;{claim.wallet_address.slice(-4)}

@@ -1,10 +1,10 @@
 "use client";
 
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { mainnet, base, sepolia } from "wagmi/chains";
+import { mainnet, base, baseSepolia, sepolia } from "wagmi/chains";
 import { EVM_CHAIN, PROJECT_NAME } from "@/lib/constants";
 
-const chainMap = { mainnet, base, sepolia } as const;
+const chainMap = { mainnet, base, baseSepolia, sepolia } as const;
 const activeChain = chainMap[EVM_CHAIN] ?? sepolia;
 
 export const wagmiConfig = getDefaultConfig({

@@ -1,9 +1,17 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import dynamic from "next/dynamic";
 import { EmailSignIn } from "./EmailSignIn";
-import { ManualWalletConnect } from "./ManualWalletConnect";
+
+// WalletMultiButton reads Solana context — must be client-only to avoid SSR errors
+const WalletMultiButton = dynamic(
+  () =>
+    import("@solana/wallet-adapter-react-ui").then(
+      (m) => m.WalletMultiButton
+    ),
+  { ssr: false }
+);
 
 export function WalletConnectSection() {
   return (
@@ -29,16 +37,6 @@ export function WalletConnectSection() {
       <div className="w-full max-w-xs animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
         <EmailSignIn />
       </div>
-
-      {/* OR divider */}
-      <div className="flex items-center gap-3 w-full max-w-xs">
-        <span className="flex-1 h-px bg-white/5" />
-        <span className="text-xs text-white/20">or</span>
-        <span className="flex-1 h-px bg-white/5" />
-      </div>
-
-      {/* ManualWalletConnect — Safari: kept here for review only */}
-      <ManualWalletConnect />
     </div>
   );
 }

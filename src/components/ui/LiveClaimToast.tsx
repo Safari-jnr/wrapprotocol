@@ -1,40 +1,39 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSupabase } from "@/components/providers/SupabaseProvider";
+import { TOKEN_SYMBOL } from "@/lib/constants";
 
 type ClaimNotification = {
-  id: number;
+  id: string;
   wallet: string;
-  amount: number;
-  symbol: string;
-  time: string;
+  chain: "evm" | "solana";
+  token_amount: string;
+  claimed_at: string;
 };
 
-const SYMBOLS = ["WRAP", "AIR", "DROP"];
-const AMOUNTS = [124, 247, 89, 512, 78, 333, 156, 899, 45, 678, 234, 445, 167, 890, 345, 567, 123, 456, 789, 234];
-
-function generateWallet(): string {
-  const chars = "0123456789abcdef";
-  let addr = "0x";
-  for (let i = 0; i < 40; i++) addr += chars[Math.floor(Math.random() * 16)];
+function truncateAddress(addr: string): string {
+  if (!addr) return "";
+  if (addr.length <= 12) return addr;
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-function generateClaim(id: number): ClaimNotification {
-  return {
-    id,
-    wallet: generateWallet(),
-    amount: AMOUNTS[Math.floor(Math.random() * AMOUNTS.length)],
-    symbol: SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-    time: "just now",
-  };
+function timeAgo(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
 }
 
 export function LiveClaimToast() {
+  const { supabase } = useSupabase();
   const [notifications, setNotifications] = useState<ClaimNotification[]>([]);
-  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set());
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
-  const removeNotification = useCallback((id: number) => {
+  const removeNotification = useCallback((id: string) => {
     setRemovingIds((prev) => new Set(prev).add(id));
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -46,41 +45,61 @@ export function LiveClaimToast() {
     }, 400);
   }, []);
 
+  const addNotification = useCallback(
+    (claim: ClaimNotification) => {
+      setNotifications((prev) => {
+        const updated = [claim, ...prev];
+        // Max 3 visible at a time — remove oldest
+        if (updated.length > 3) {
+          const removed = updated.pop()!;
+          setRemovingIds((r) => new Set(r).add(removed.id));
+          setTimeout(() => {
+            setNotifications((n) => n.filter((x) => x.id !== removed.id));
+            setRemovingIds((r) => {
+              const next = new Set(r);
+              next.delete(removed.id);
+              return next;
+            });
+          }, 400);
+        }
+        return updated;
+      });
+      // Auto-dismiss after 6 seconds
+      setTimeout(() => removeNotification(claim.id), 6000);
+    },
+    [removeNotification]
+  );
+
   useEffect(() => {
-    let nextId = 0;
+    // Subscribe to new claims via Supabase realtime
+    const channel = supabase
+      .channel("live-claims")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "claims" },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            wallet_address: string;
+            chain: "evm" | "solana";
+            token_amount: string;
+            claimed_at: string;
+          };
+          addNotification({
+            id: row.id,
+            wallet: row.wallet_address,
+            chain: row.chain,
+            token_amount: row.token_amount,
+            claimed_at: row.claimed_at,
+          });
+        }
+      )
+      .subscribe();
 
-    const scheduleNext = () => {
-      const delay = 3000 + Math.random() * 5000; // 3-8 seconds
-      return setTimeout(() => {
-        const newClaim = generateClaim(nextId++);
-        setNotifications((prev) => {
-          const updated = [...prev, newClaim];
-          // Max 3 visible at a time
-          if (updated.length > 3) {
-            const old = updated.shift()!;
-            setRemovingIds((prev) => new Set(prev).add(old.id));
-            setTimeout(() => {
-              setNotifications((n) => n.filter((x) => x.id !== old.id));
-              setRemovingIds((r) => {
-                const next = new Set(r);
-                next.delete(old.id);
-                return next;
-              });
-            }, 400);
-          }
-          return updated;
-        });
-
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => removeNotification(newClaim.id), 5000);
-
-        scheduleNext();
-      }, delay);
+    return () => {
+      supabase.removeChannel(channel);
     };
-
-    const timer = scheduleNext();
-    return () => clearTimeout(timer);
-  }, [removeNotification]);
+  }, [supabase, addNotification]);
 
   if (notifications.length === 0) return null;
 
@@ -103,23 +122,41 @@ export function LiveClaimToast() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs text-white/70">
-                  {n.wallet}
+                  {truncateAddress(n.wallet)}
                 </span>
                 <span className="bg-success/20 text-success text-xs font-bold px-2 py-0.5 rounded-full">
-                  +${n.amount}
+                  +{n.token_amount}
                 </span>
               </div>
               <p className="text-xs text-white/40 mt-0.5">
-                claimed <span className="text-white/30">{n.symbol}</span> tokens
+                claimed{" "}
+                <span className="text-white/30">{TOKEN_SYMBOL}</span> tokens
+                {" · "}
+                <span className="text-white/20 capitalize">{n.chain}</span>
               </p>
-              <p className="text-[10px] text-white/20 mt-1">{n.time}</p>
+              <p className="text-[10px] text-white/20 mt-1">
+                {timeAgo(n.claimed_at)}
+              </p>
             </div>
 
             {/* Token icon */}
-            <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-accent-500/30 via-violet-500/30 to-pink-500/30 flex items-center justify-center">
-              <span className="text-xs font-bold text-white/70">{n.symbol?.slice(0, 1)}</span>
+            <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-accent-500/30 via-violet-500/30 to-pink-500/30 flex items-center justify-center">
+              <span className="text-xs font-bold text-white/70">
+                {TOKEN_SYMBOL.slice(0, 1)}
+              </span>
             </div>
           </div>
+
+          {/* Close button */}
+          <button
+            onClick={() => removeNotification(n.id)}
+            className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center text-white/20 hover:text-white/50 transition-colors"
+            aria-label="Dismiss"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       ))}
     </div>
