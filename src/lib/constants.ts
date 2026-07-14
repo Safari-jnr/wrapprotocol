@@ -41,7 +41,7 @@ export const SOLANA_PROGRAM_ID =
   process.env.NEXT_PUBLIC_SOLANA_PROGRAM_ID ?? "11111111111111111111111111111111";
 
 // ─── Network / chain config ───────────────────────────────────────────────────
-export const EVM_CHAIN = (process.env.NEXT_PUBLIC_EVM_CHAIN ?? "sepolia") as
+export const EVM_CHAIN = (process.env.NEXT_PUBLIC_EVM_CHAIN ?? "base") as
   | "mainnet"
   | "base"
   | "sepolia";
