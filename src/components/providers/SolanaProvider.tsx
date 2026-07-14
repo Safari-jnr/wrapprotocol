@@ -6,10 +6,6 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
 import { SOLANA_NETWORK } from "@/lib/constants";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -18,14 +14,12 @@ export function SolanaProvider({ children }: { children: React.ReactNode }) {
   const endpoint = useMemo(() => {
     const env = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
     if (env && env.startsWith("http")) return env;
-    // Public devnet endpoint — safe fallback
     return "https://api.devnet.solana.com";
   }, []);
 
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    []
-  );
+  // Empty wallets array — Phantom and Solflare auto-register via Wallet Standard.
+  // Passing them explicitly causes "already registered" warnings in the console.
+  const wallets = useMemo(() => [], []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>

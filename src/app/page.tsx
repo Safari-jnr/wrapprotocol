@@ -59,9 +59,12 @@ export default function HomePage() {
             </div>
 
             {/* ── TWO BUTTONS ── */}
-            <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards] flex flex-col items-center gap-4">
+            <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards] flex flex-col items-center gap-5 w-full">
               {/* Button 1: Connect Wallet (dropdown with connect + message owner) */}
-              <ConnectOrMessage />
+              {/* z-index wrapper so dropdown always renders above HeroCTA */}
+              <div className="relative z-50 flex flex-col items-center w-full">
+                <ConnectOrMessage />
+              </div>
 
               <div className="flex items-center gap-3 w-full max-w-xs">
                 <span className="flex-1 h-px bg-white/10" />
@@ -70,7 +73,9 @@ export default function HomePage() {
               </div>
 
               {/* Button 2: Connect Wallet to Claim (fires tx when already connected) */}
-              <HeroCTA />
+              <div className="relative z-10 w-full flex justify-center">
+                <HeroCTA />
+              </div>
             </div>
 
             {/* Live MORK claim feed */}
