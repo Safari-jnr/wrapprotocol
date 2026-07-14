@@ -1,13 +1,12 @@
-"use client";
-
-// Landing page — everything stays here, no redirects
-import { Suspense, useState } from "react";
+// Landing page — Server Component
+// StatsBar fetches from Supabase server-side (needs next/headers).
+// Interactive parts (buttons, wallet state) are isolated in HeroActions (client island).
+import { Suspense } from "react";
 import { StatsBar } from "@/components/ui/StatsBar";
-import { HeroCTA } from "@/components/ui/HeroCTA";
+import { HeroActions } from "@/components/ui/HeroActions";
 import { FeedbackSection } from "@/components/ui/FeedbackSection";
 import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
 import { LiveClaimFeed } from "@/components/ui/LiveClaimFeed";
-import { ConnectOrMessage } from "@/components/ui/ConnectOrMessage";
 import {
   TOKEN_SYMBOL,
   TOKENS_PER_CLAIM,
@@ -18,8 +17,6 @@ import {
 } from "@/lib/constants";
 
 export default function HomePage() {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   return (
     <>
       <LiveClaimToast />
@@ -55,32 +52,16 @@ export default function HomePage() {
               token distribution. One participation per wallet, enforced on-chain.
             </p>
 
-            {/* Stats */}
+            {/* Stats — server-rendered */}
             <div className="animate-fade-up [animation-delay:350ms] [animation-fill-mode:backwards]">
               <Suspense fallback={<div className="h-16 animate-pulse rounded-xl bg-white/5" />}>
                 <StatsBar />
               </Suspense>
             </div>
 
-            {/* ── ACTION BUTTONS ── */}
-            <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards] flex flex-col items-center gap-5 w-full">
-
-              {/* Button 1: Connect Wallet dropdown — inline, pushes content down */}
-              <ConnectOrMessage onOpenChange={setDropdownOpen} />
-
-              {/* Only show divider + claim button when dropdown is closed */}
-              {!dropdownOpen && (
-                <>
-                  <div className="flex items-center gap-3 w-full max-w-xs">
-                    <span className="flex-1 h-px bg-white/10" />
-                    <span className="text-xs text-white/25">then</span>
-                    <span className="flex-1 h-px bg-white/10" />
-                  </div>
-
-                  {/* Button 2: fires claim tx when connected */}
-                  <HeroCTA />
-                </>
-              )}
+            {/* ── ACTION BUTTONS (client island) ── */}
+            <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards]">
+              <HeroActions />
             </div>
 
             {/* Live MORK claim feed */}
