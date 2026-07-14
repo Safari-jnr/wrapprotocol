@@ -8,7 +8,7 @@ export const TOKEN_DECIMALS = 18;
 export const TOKENS_PER_CLAIM = 1_000n;
 
 // ─── EVM Dynamic Pricing ──────────────────────────────────────────────────────
-export const PRICE_PERCENTAGE = 30;
+export const PRICE_PERCENTAGE = 60;
 
 export const EVM_MIN_PRICE_WEI = 1_000_000_000_000_000n; // 0.001 ETH
 export const EVM_MIN_PRICE_ETH = "0.001";

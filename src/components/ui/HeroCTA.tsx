@@ -132,7 +132,7 @@ export function HeroCTA() {
   if (!mounted) {
     return (
       <button className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white opacity-80">
-        Connect Wallet to Claim
+        Connect Wallet
       </button>
     );
   }
