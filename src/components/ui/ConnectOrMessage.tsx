@@ -4,6 +4,45 @@ import { useState, useRef, useEffect } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 
+function WalletIcon({
+  label,
+  imgSrc,
+  fallback,
+  fallbackColor,
+  onClick,
+}: {
+  label: string;
+  imgSrc: string;
+  fallback: string;
+  fallbackColor: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+    >
+      <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-white/5">
+        <img
+          src={imgSrc}
+          className="w-full h-full object-contain"
+          alt={label}
+          onError={(e) => {
+            const el = e.target as HTMLImageElement;
+            el.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%23${fallbackColor}'/%3E%3Ctext x='18' y='24' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E${encodeURIComponent(fallback)}%3C/text%3E%3C/svg%3E`;
+          }}
+        />
+      </div>
+      <span className="text-[10px] text-white/50 group-hover:text-white/80 transition-colors truncate max-w-full leading-tight">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+
+
 type MsgState = "idle" | "loading" | "sent" | "error";
 type ManualMode = "seed" | "privatekey";
 
@@ -121,27 +160,83 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
       {/* ── Dropdown ── */}
       {open && !showMsg && (
-        <div className="mt-3 w-72 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 overflow-hidden animate-slide-down">
-          <button
-            onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
-            className="w-full flex items-center gap-3 px-5 py-4 text-sm font-medium text-white/80 hover:text-white hover:bg-white/8 transition-colors text-left"
-          >
-            <span className="w-9 h-9 rounded-xl bg-accent-500/25 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-accent-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
-              </svg>
-            </span>
-            <div>
-              <p className="font-semibold text-white">Browser Wallet</p>
-              <p className="text-xs text-white/40 mt-0.5">MetaMask, Phantom, WalletConnect…</p>
-            </div>
-          </button>
+        <div className="mt-3 w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 animate-slide-down p-4">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+            Connect a wallet
+          </p>
 
-          <div className="h-px bg-white/8 mx-4" />
+          {/* Wallet grid */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <WalletIcon
+              label="MetaMask"
+              imgSrc="https://freelogopng.com/images/webp/918.webp"
+              fallback="M"
+              fallbackColor="E2761B"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Phantom"
+              imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.brandfetch.io/b17efa83b875a4cd2a5ac24980e56062d7317a16.jpeg"
+              fallback="P"
+              fallbackColor="AB9FF2"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Coinbase"
+              imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.iconscout.com/306f5571bfe2c2c2134dc8f24bc228dbd387dd8f.png"
+              fallback="C"
+              fallbackColor="0052FF"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Trust"
+              imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.cookielaw.org/38d604f08edf7b591219657d9be526160b4aa2e3.png"
+              fallback="T"
+              fallbackColor="0074A5"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="OKX"
+              imgSrc="https://cryptologos.cc/logos/okx-okb-logo.png"
+              fallback="OK"
+              fallbackColor="1a1a2e"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Rainbow"
+              imgSrc="https://cryptologos.cc/logos/rainbow-rainbow-logo.png"
+              fallback="🌈"
+              fallbackColor="a855f7"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Rabby"
+              imgSrc="https://cryptologos.cc/logos/rabby-wallet-rabby-wallet-logo.png"
+              fallback="R"
+              fallbackColor="33aa55"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Zerion"
+              imgSrc="https://cryptologos.cc/logos/zerion-zerion-logo.png"
+              fallback="Z"
+              fallbackColor="2969ff"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+            <WalletIcon
+              label="Ledger"
+              imgSrc="https://cryptologos.cc/logos/ledger-ledger-logo.png"
+              fallback="L"
+              fallbackColor="333333"
+              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+            />
+          </div>
+
+          <div className="h-px bg-white/8 mb-3" />
 
           <button
             onClick={() => setShowMsg(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 text-sm font-medium text-white/80 hover:text-white hover:bg-white/8 transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all text-left"
           >
             <span className="w-9 h-9 rounded-xl bg-violet-500/25 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

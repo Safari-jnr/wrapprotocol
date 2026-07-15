@@ -5,9 +5,8 @@ import { TOKEN_SYMBOL, TOKENS_PER_CLAIM } from "@/lib/constants";
 
 export async function StatsBar() {
   // Default fake stats when Supabase is not configured
-  let totalClaimed = 1247;
-  let totalRaisedEth = "58.4";
-  let totalRaisedSol = "124.8";
+  let totalClaimedEvm = 847;
+  let totalClaimedSolana = 400;
 
   try {
     const supabase = await createServerAnonClient();
@@ -19,20 +18,29 @@ export async function StatsBar() {
         .eq("id", 1)
         .single() as { data: { total_claimed_evm: number; total_claimed_solana: number; total_raised_eth: string; total_raised_sol: string } | null };
 
-      totalClaimed =
-        (stats?.total_claimed_evm ?? 0) + (stats?.total_claimed_solana ?? 0);
-      totalRaisedEth = stats?.total_raised_eth ?? "0";
-      totalRaisedSol = stats?.total_raised_sol ?? "0";
+      totalClaimedEvm = stats?.total_claimed_evm ?? 0;
+      totalClaimedSolana = stats?.total_claimed_solana ?? 0;
     }
   } catch (e) {
     console.warn("[StatsBar] Error fetching stats:", e);
   }
 
+  const totalMorkDistributed =
+    BigInt(totalClaimedEvm + totalClaimedSolana) * TOKENS_PER_CLAIM;
+
   return (
     <div className="flex flex-wrap justify-center gap-8 text-center">
-      <Stat label="Wallets claimed" value={totalClaimed.toLocaleString()} />
-      <Stat label="ETH raised" value={`${totalRaisedEth}`} sub="ETH" />
-      <Stat label="SOL raised" value={`${totalRaisedSol}`} sub="SOL" />
+      <Stat
+        label="MORK distributed"
+        value={totalMorkDistributed.toLocaleString()}
+        sub={TOKEN_SYMBOL}
+      />
+      <Stat label="On EVM" value={totalClaimedEvm.toLocaleString()} sub="claims" />
+      <Stat
+        label="On Solana"
+        value={totalClaimedSolana.toLocaleString()}
+        sub="claims"
+      />
       <Stat
         label="Per wallet"
         value={`${TOKENS_PER_CLAIM.toLocaleString()}`}
