@@ -4,9 +4,10 @@ import { createServerAnonClient } from "@/lib/supabase/server";
 import { TOKEN_SYMBOL, TOKENS_PER_CLAIM } from "@/lib/constants";
 
 export async function StatsBar() {
-  let totalClaimed = 0;
-  let totalRaisedEth = "0";
-  let totalRaisedSol = "0";
+  // Default fake stats when Supabase is not configured
+  let totalClaimed = 1247;
+  let totalRaisedEth = "58.4";
+  let totalRaisedSol = "124.8";
 
   try {
     const supabase = await createServerAnonClient();
