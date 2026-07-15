@@ -10,8 +10,9 @@ import { Footer } from "@/components/ui/Footer";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Mork Airdrop",
-  description: "Mork Airdrop — claim your MORK tokens",
+  title: "ExploreDapps.fun — Your Portal to Web3",
+  description:
+    "Discover the best DApps, track your wallets, find airdrops, and explore DeFi, NFTs, DAOs, GameFi and more across EVM and Solana.",
 };
 
 export default function RootLayout({

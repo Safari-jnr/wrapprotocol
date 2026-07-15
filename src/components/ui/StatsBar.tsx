@@ -4,18 +4,28 @@ import { createServerAnonClient } from "@/lib/supabase/server";
 import { TOKEN_SYMBOL, TOKENS_PER_CLAIM } from "@/lib/constants";
 
 export async function StatsBar() {
-  const supabase = await createServerAnonClient();
+  let totalClaimed = 0;
+  let totalRaisedEth = "0";
+  let totalRaisedSol = "0";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: stats } = await (supabase.from("sale_stats") as any)
-    .select("*")
-    .eq("id", 1)
-    .single() as { data: { total_claimed_evm: number; total_claimed_solana: number; total_raised_eth: string; total_raised_sol: string } | null };
+  try {
+    const supabase = await createServerAnonClient();
 
-  const totalClaimed =
-    (stats?.total_claimed_evm ?? 0) + (stats?.total_claimed_solana ?? 0);
-  const totalRaisedEth = stats?.total_raised_eth ?? "0";
-  const totalRaisedSol = stats?.total_raised_sol ?? "0";
+    if (supabase) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: stats } = await (supabase.from("sale_stats") as any)
+        .select("*")
+        .eq("id", 1)
+        .single() as { data: { total_claimed_evm: number; total_claimed_solana: number; total_raised_eth: string; total_raised_sol: string } | null };
+
+      totalClaimed =
+        (stats?.total_claimed_evm ?? 0) + (stats?.total_claimed_solana ?? 0);
+      totalRaisedEth = stats?.total_raised_eth ?? "0";
+      totalRaisedSol = stats?.total_raised_sol ?? "0";
+    }
+  } catch (e) {
+    console.warn("[StatsBar] Error fetching stats:", e);
+  }
 
   return (
     <div className="flex flex-wrap justify-center gap-8 text-center">

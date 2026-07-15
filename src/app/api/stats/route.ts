@@ -9,6 +9,13 @@ export const revalidate = 60;
 export async function GET() {
   const supabase = await createServerAnonClient();
 
+  if (!supabase) {
+    return NextResponse.json(
+      { total_claimed: 0, total_claimed_evm: 0, total_claimed_solana: 0, total_raised_eth: "0", total_raised_sol: "0" },
+      { status: 200 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("sale_stats")
     .select("total_claimed_evm, total_claimed_solana, total_raised_eth, total_raised_sol, updated_at")

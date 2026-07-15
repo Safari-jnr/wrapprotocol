@@ -7,6 +7,18 @@ import { EVM_EXPLORER, EVM_CHAIN, SOLANA_EXPLORER_BASE } from "@/lib/constants";
 export async function ClaimHistory({ limit = 20 }: { limit?: number }) {
   const supabase = await createServerAnonClient();
 
+  if (!supabase) {
+    return (
+      <div className="glass rounded-xl p-8 text-center space-y-2">
+        <div className="text-3xl">📋</div>
+        <p className="text-sm text-white/30">No claims recorded yet.</p>
+        <p className="text-xs text-white/20">
+          Supabase not configured.
+        </p>
+      </div>
+    );
+  }
+
   type ClaimRow = {
     id: string;
     wallet_address: string;

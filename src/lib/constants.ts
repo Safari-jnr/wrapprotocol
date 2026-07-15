@@ -1,7 +1,7 @@
 // ─── Project constants ────────────────────────────────────────────────────────
 // Leave PROJECT_NAME blank — owner will fill in the branding
 
-export const PROJECT_NAME = "";        // Owner to provide
+export const PROJECT_NAME = "ExploreDapps";
 export const TOKEN_SYMBOL = "MORK";
 export const TOKEN_DECIMALS = 18;
 

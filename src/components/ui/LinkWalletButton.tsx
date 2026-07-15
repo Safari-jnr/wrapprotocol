@@ -18,6 +18,12 @@ export function LinkWalletButton({ walletAddress, chain }: Props) {
   if (!session) return null;
 
   async function handleLink() {
+    if (!supabase) {
+      setMsg("Supabase is not configured.");
+      setState("error");
+      return;
+    }
+
     setState("loading");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from("linked_wallets") as any).upsert(

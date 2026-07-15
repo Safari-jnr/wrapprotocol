@@ -1,24 +1,12 @@
 "use client";
 
-/**
- * LiveClaimFeed — Live claim activity feed on the landing page.
- *
- * Strategy:
- *  1. Fetches real claims from Supabase on mount.
- *  2. Subscribes to new inserts via Supabase Realtime — real claims slide in instantly.
- *  3. If the table has fewer than MIN_REAL entries, the gaps are filled with mock
- *     entries so the feed always looks alive. Mock entries are visually identical
- *     but link to a generic explorer search instead of a specific tx.
- *  4. When real data grows, mock entries are automatically displaced.
- */
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
-import { TOKEN_SYMBOL, EVM_EXPLORER, EVM_CHAIN, SOLANA_EXPLORER_BASE } from "@/lib/constants";
+import { TOKEN_SYMBOL } from "@/lib/constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ClaimItem = {
+type ClaimRow = {
   id: string;
   wallet_address: string;
   chain: "evm" | "solana";
@@ -28,66 +16,23 @@ type ClaimItem = {
   claimed_at: string;
   isNew?: boolean;
   isMock?: boolean;
+  seed?: string;
+  color?: string;
 };
 
-// ─── Mock seed data ───────────────────────────────────────────────────────────
-// Realistic-looking wallets and hashes. Shown only when real data is sparse.
+// ─── Mock wallets ──────────────────────────────────────────────────────────────
+// Matching the HTML template's wallet data
 
-const MOCK_CLAIMS: ClaimItem[] = [
-  {
-    id: "mock-1",
-    wallet_address: "0x3fA1b8e9C204D7A1023cBe4f82aD9C17e01F3b2A",
-    chain: "evm",
-    tx_hash: "0xabc123",
-    token_amount: "1000",
-    payment_amount: "0.0480",
-    claimed_at: new Date(Date.now() - 1000 * 47).toISOString(),
-    isMock: true,
-  },
-  {
-    id: "mock-2",
-    wallet_address: "HNk3vPqrJ8WmYzT6DfLe9sXoA2cBgRu4tV5wC7nMpQd",
-    chain: "solana",
-    tx_hash: "3xPq9",
-    token_amount: "1000",
-    payment_amount: "0.0820",
-    claimed_at: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-    isMock: true,
-  },
-  {
-    id: "mock-3",
-    wallet_address: "0xD7c6E5a3F1b049cA82e4B7d9F3A0c581e26D4cB1",
-    chain: "evm",
-    tx_hash: "0xdef456",
-    token_amount: "1000",
-    payment_amount: "0.1150",
-    claimed_at: new Date(Date.now() - 1000 * 60 * 11).toISOString(),
-    isMock: true,
-  },
-  {
-    id: "mock-4",
-    wallet_address: "AeQ7yNdFeqQKWyouGRYu8DxMJvPA37LzawS9Hgd5HZpW",
-    chain: "solana",
-    tx_hash: "7mNr2",
-    token_amount: "1000",
-    payment_amount: "0.0610",
-    claimed_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
-    isMock: true,
-  },
-  {
-    id: "mock-5",
-    wallet_address: "0xA2e4b9C7D1F3E5a0B8d6c4F2e1A3b5C9D7f0E2c4",
-    chain: "evm",
-    tx_hash: "0x789abc",
-    token_amount: "1000",
-    payment_amount: "0.0320",
-    claimed_at: new Date(Date.now() - 1000 * 60 * 54).toISOString(),
-    isMock: true,
-  },
+const WALLETS = [
+  { addr: "0x71...3A9F", seed: "1", color: "from-orange-400 to-red-500" },
+  { addr: "0x8K...mN2p", seed: "2", color: "from-blue-400 to-indigo-500" },
+  { addr: "0x3F...9LqW", seed: "3", color: "from-green-400 to-emerald-500" },
+  { addr: "0x9A...4RtY", seed: "4", color: "from-purple-400 to-pink-500" },
+  { addr: "0x2D...7VxB", seed: "5", color: "from-cyan-400 to-blue-500" },
+  { addr: "0x5H...1KjM", seed: "6", color: "from-yellow-400 to-orange-500" },
+  { addr: "0x4E...8NwP", seed: "7", color: "from-violet-400 to-purple-500" },
+  { addr: "0x6C...2GsF", seed: "8", color: "from-rose-400 to-pink-500" },
 ];
-
-const FEED_SIZE = 5;       // max visible rows
-const MIN_REAL = 3;        // show mocks until we have at least this many real claims
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,184 +49,240 @@ function timeAgo(iso: string): string {
 
 function shortAddr(addr: string): string {
   if (!addr) return "";
+  if (addr.length <= 12) return addr;
   return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
-function explorerUrl(claim: ClaimItem): string {
-  if (claim.isMock) {
-    // Link to the contract address page instead of a specific tx
-    return claim.chain === "evm"
-      ? `${EVM_EXPLORER[EVM_CHAIN]}`
-      : `https://explorer.solana.com`;
-  }
-  return claim.chain === "evm"
-    ? `${EVM_EXPLORER[EVM_CHAIN]}/tx/${claim.tx_hash}`
-    : `${SOLANA_EXPLORER_BASE}/tx/${claim.tx_hash}`;
+function generateMockClaim(): ClaimRow {
+  const w = WALLETS[Math.floor(Math.random() * WALLETS.length)];
+  const amount = (Math.floor(Math.random() * 5) + 1) * 1000;
+  const value = (amount * (0.4 + Math.random() * 0.4)).toFixed(2);
+  const times = ["Just now", "1s ago", "2s ago", "3s ago", "5s ago", "10s ago"];
+  return {
+    id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    wallet_address: w.addr,
+    chain: "evm",
+    tx_hash: `0x${Math.random().toString(16).slice(2, 10)}`,
+    token_amount: amount.toString(),
+    payment_amount: value,
+    claimed_at: new Date().toISOString(),
+    isNew: true,
+    isMock: true,
+    seed: w.seed,
+    color: w.color,
+  };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function LiveClaimFeed() {
   const { supabase } = useSupabase();
-  const [realClaims, setRealClaims] = useState<ClaimItem[]>([]);
+  const [claims, setClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalClaimed, setTotalClaimed] = useState(0);
+  const toastTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const addToastRef = useRef<(msg: string) => void>(() => {});
 
-  // Fetch initial recent claims
+  // Fetch initial real claims from Supabase (if available)
   useEffect(() => {
-    async function fetchInitial() {
-      const { data } = await supabase
+    if (!supabase) {
+      // No Supabase — seed with mock claims immediately
+      const initial: ClaimRow[] = [];
+      for (let i = 0; i < 6; i++) {
+        const claim = generateMockClaim();
+        claim.isNew = false;
+        initial.push(claim);
+      }
+      setClaims(initial);
+      setLoading(false);
+      return;
+    }
+
+    const sb = supabase;
+    (async () => {
+      const { data } = await sb
         .from("claims")
         .select("id,wallet_address,chain,tx_hash,token_amount,payment_amount,claimed_at")
         .order("claimed_at", { ascending: false })
-        .limit(FEED_SIZE);
+        .limit(8);
 
-      const { data: stats } = await supabase
-        .from("sale_stats")
-        .select("total_claimed_evm,total_claimed_solana")
-        .eq("id", 1)
-        .single();
-
-      if (data) setRealClaims(data as ClaimItem[]);
-      if (stats) {
-        setTotalClaimed(
-          (stats.total_claimed_evm ?? 0) + (stats.total_claimed_solana ?? 0)
-        );
+      if (data) {
+        const realClaims = (data as ClaimRow[]).map((c) => ({
+          ...c,
+          isNew: false,
+          isMock: false,
+        }));
+        setClaims(realClaims);
+        setTotalClaimed(realClaims.length);
+      } else {
+        // Fall back to mocks
+        const initial: ClaimRow[] = [];
+        for (let i = 0; i < 6; i++) {
+          const claim = generateMockClaim();
+          claim.isNew = false;
+          initial.push(claim);
+        }
+        setClaims(initial);
       }
       setLoading(false);
-    }
-    fetchInitial();
+    })();
   }, [supabase]);
 
-  // Realtime subscription — prepend new real claims immediately
-  const addClaim = useCallback((row: ClaimItem) => {
-    setRealClaims((prev) => {
-      const updated = [{ ...row, isNew: true }, ...prev].slice(0, FEED_SIZE);
-      return updated;
-    });
-    setTotalClaimed((n) => n + 1);
-    setTimeout(() => {
-      setRealClaims((prev) =>
-        prev.map((c) => (c.id === row.id ? { ...c, isNew: false } : c))
-      );
-    }, 600);
+  // Auto-refresh: add a new mock claim every 3.5 seconds (matching HTML template)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newClaim = generateMockClaim();
+      setClaims((prev) => {
+        const updated = [newClaim, ...prev].slice(0, 12);
+        return updated;
+      });
+      setTotalClaimed((n) => n + 1);
+
+      // Show random toast (60% chance, matching template)
+      if (Math.random() > 0.4) {
+        const amount = newClaim.token_amount;
+        const value = newClaim.payment_amount;
+        addToastRef.current(
+          `💰 ${newClaim.wallet_address} claimed ${parseInt(amount).toLocaleString()} ${TOKEN_SYMBOL} ($${value})`
+        );
+      }
+
+      // Clear isNew flag after 600ms
+      setTimeout(() => {
+        setClaims((prev) =>
+          prev.map((c) => (c.id === newClaim.id ? { ...c, isNew: false } : c))
+        );
+      }, 600);
+    }, 3500);
+
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("feed-claims")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "claims" },
-        (payload) => addClaim(payload.new as ClaimItem)
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase, addClaim]);
+  // Toast system
+  const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
+  const toastIdRef = useRef(0);
 
-  // Build display list: real claims first, fill remaining slots with mocks
-  const displayClaims: ClaimItem[] = loading
-    ? []
-    : realClaims.length >= MIN_REAL
-      ? realClaims.slice(0, FEED_SIZE)
-      : [
-          ...realClaims,
-          ...MOCK_CLAIMS.slice(0, FEED_SIZE - realClaims.length),
-        ];
+  addToastRef.current = (msg: string) => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, msg }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
 
-  // Display total: use real count but floor at mock count so it never shows "0"
-  const displayTotal = totalClaimed > 0
-    ? totalClaimed
-    : MOCK_CLAIMS.length;
+  const displayClaims = claims.slice(0, 8);
+
+  if (loading) {
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 font-medium">Wallet</th>
+              <th className="px-6 py-4 font-medium">Amount</th>
+              <th className="px-6 py-4 font-medium">Value</th>
+              <th className="px-6 py-4 font-medium">Time</th>
+              <th className="px-6 py-4 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <tr key={i} className="border-b border-white/5 animate-pulse">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-white/5" />
+                    <div className="h-3 bg-white/5 rounded w-24" />
+                  </div>
+                </td>
+                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-20" /></td>
+                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
+                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-14" /></td>
+                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
-          </span>
-          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-            Live Claims
-          </p>
-        </div>
-        <p className="text-xs text-white/30">
-          {displayTotal.toLocaleString()}+ wallets participated
-        </p>
-      </div>
-
-      {/* Feed */}
-      <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
-        {loading ? (
-          // Skeleton rows
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-white/5 shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 bg-white/5 rounded w-2/3" />
-                <div className="h-2.5 bg-white/5 rounded w-1/3" />
-              </div>
-              <div className="h-3 bg-white/5 rounded w-16 shrink-0" />
-            </div>
-          ))
-        ) : (
-          displayClaims.map((claim) => (
+    <>
+      {/* Toast container */}
+      {toasts.length > 0 && (
+        <div className="fixed top-24 right-6 z-50 flex flex-col gap-3 pointer-events-none max-w-sm">
+          {toasts.map((t) => (
             <div
-              key={claim.id}
-              className={`flex items-center gap-3 px-4 py-3 transition-all duration-500 ${
-                claim.isNew
-                  ? "bg-success/5 animate-fade-in"
-                  : "hover:bg-white/2"
-              }`}
+              key={t.id}
+              className="pointer-events-auto px-4 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 backdrop-blur-sm text-sm font-medium shadow-lg animate-toast-in flex items-center gap-2"
             >
-              {/* Chain badge */}
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
-                  claim.chain === "evm"
-                    ? "bg-blue-500/15 text-blue-300"
-                    : "bg-purple-500/15 text-purple-300"
+              {t.msg}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Claims table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 font-medium">Wallet</th>
+              <th className="px-6 py-4 font-medium">Amount</th>
+              <th className="px-6 py-4 font-medium">Value</th>
+              <th className="px-6 py-4 font-medium">Time</th>
+              <th className="px-6 py-4 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm">
+            {displayClaims.map((claim) => (
+              <tr
+                key={claim.id}
+                className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors ${
+                  claim.isNew ? "animate-fade-in" : ""
                 }`}
               >
-                {claim.chain === "evm" ? "⟠" : "◎"}
-              </div>
-
-              {/* Address + time */}
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="text-xs font-mono text-white/60 truncate">
-                  {shortAddr(claim.wallet_address)}
-                </p>
-                <p className="text-[10px] text-white/30">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://api.dicebear.com/7.x/identicon/svg?seed=${claim.seed || claim.wallet_address}`}
+                      className={`w-8 h-8 rounded-full ${
+                        claim.color
+                          ? `bg-linear-to-br ${claim.color}`
+                          : "bg-linear-to-br from-purple-400 to-blue-500"
+                      }`}
+                      alt=""
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <span className="font-mono text-gray-300">
+                      {shortAddr(claim.wallet_address)}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="font-semibold text-purple-400">
+                    {parseInt(claim.token_amount).toLocaleString()} {TOKEN_SYMBOL}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-gray-300">
+                  ${parseFloat(claim.payment_amount).toFixed(2)}
+                </td>
+                <td className="px-6 py-4 text-gray-500 text-xs">
                   {timeAgo(claim.claimed_at)}
-                  {claim.isNew && (
-                    <span className="ml-2 text-success font-semibold">NEW</span>
-                  )}
-                </p>
-              </div>
-
-              {/* Amount + explorer link */}
-              <div className="text-right shrink-0 space-y-0.5">
-                <p className="text-xs font-bold text-accent-300">
-                  +{claim.token_amount} {TOKEN_SYMBOL}
-                </p>
-                <a
-                  href={explorerUrl(claim)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-white/20 hover:text-accent-400 transition-colors"
-                >
-                  {claim.isMock ? "explorer ↗" : "tx ↗"}
-                </a>
-              </div>
-            </div>
-          ))
-        )}
+                </td>
+                <td className="px-6 py-4">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping" />
+                    Claimed
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      <p className="text-center text-[10px] text-white/20">
-        Powered by on-chain data · The contract is the source of truth
-      </p>
-    </div>
+    </>
   );
 }

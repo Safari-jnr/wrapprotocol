@@ -71,6 +71,8 @@ export function LiveClaimToast() {
   );
 
   useEffect(() => {
+    if (!supabase) return;
+
     // Subscribe to new claims via Supabase realtime
     const channel = supabase
       .channel("live-claims")

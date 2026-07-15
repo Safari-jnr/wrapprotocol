@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createServerSupabaseClient();
 
+  if (!supabase) {
+    console.warn("[api/claims] Supabase not configured — skipping record");
+    return NextResponse.json({ ok: true, warning: "Supabase not configured" }, { status: 201 });
+  }
+
   // Upsert on tx_hash to handle retries/duplicates gracefully
   const { error } = await supabase.from("claims").upsert(
     {
