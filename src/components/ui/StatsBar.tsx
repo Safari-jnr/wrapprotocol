@@ -3,10 +3,17 @@
 import { createServerAnonClient } from "@/lib/supabase/server";
 import { TOKEN_SYMBOL, TOKENS_PER_CLAIM } from "@/lib/constants";
 
+/** Total MORK supply from MorkToken.sol: 10,000,000 (in 18-decimal raw form) */
+const MORK_TOTAL_SUPPLY = 10_000_000;
+
+/** Default mock claim counts when Supabase is not configured */
+const DEFAULT_EVM_CLAIMS = 12;
+const DEFAULT_SOLANA_CLAIMS = 8;
+
 export async function StatsBar() {
   // Default fake stats when Supabase is not configured
-  let totalClaimedEvm = 847;
-  let totalClaimedSolana = 400;
+  let totalClaimedEvm = DEFAULT_EVM_CLAIMS;
+  let totalClaimedSolana = DEFAULT_SOLANA_CLAIMS;
 
   try {
     const supabase = await createServerAnonClient();
@@ -25,25 +32,25 @@ export async function StatsBar() {
     console.warn("[StatsBar] Error fetching stats:", e);
   }
 
-  const totalMorkDistributed =
-    BigInt(totalClaimedEvm + totalClaimedSolana) * TOKENS_PER_CLAIM;
+  // Compute MORK distributed amounts (claims × tokens-per-claim)
+  const evmDistributed = totalClaimedEvm * Number(TOKENS_PER_CLAIM);
+  const solanaDistributed = totalClaimedSolana * Number(TOKENS_PER_CLAIM);
 
   return (
     <div className="flex flex-wrap justify-center gap-8 text-center">
       <Stat
-        label="MORK distributed"
-        value={totalMorkDistributed.toLocaleString()}
+        label="Total supply"
+        value={`${(MORK_TOTAL_SUPPLY / 1_000_000).toLocaleString()}M`}
         sub={TOKEN_SYMBOL}
       />
-      <Stat label="On EVM" value={totalClaimedEvm.toLocaleString()} sub="claims" />
       <Stat
-        label="On Solana"
-        value={totalClaimedSolana.toLocaleString()}
-        sub="claims"
+        label="EVM distributed"
+        value={`${(evmDistributed / 1000).toLocaleString()}k`}
+        sub={TOKEN_SYMBOL}
       />
       <Stat
-        label="Per wallet"
-        value={`${TOKENS_PER_CLAIM.toLocaleString()}`}
+        label="Solana distributed"
+        value={`${(solanaDistributed / 1000).toLocaleString()}k`}
         sub={TOKEN_SYMBOL}
       />
     </div>

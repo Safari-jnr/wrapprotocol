@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useConnect } from "wagmi";
 import { useAccount } from "wagmi";
 
 function WalletIcon({
@@ -21,9 +21,9 @@ function WalletIcon({
     <button
       onClick={onClick}
       title={label}
-      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+      className="flex flex-col items-center gap-1 p-2 sm:gap-1.5 sm:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
     >
-      <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-white/5">
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg overflow-hidden flex items-center justify-center bg-white/5">
         <img
           src={imgSrc}
           className="w-full h-full object-contain"
@@ -34,14 +34,12 @@ function WalletIcon({
           }}
         />
       </div>
-      <span className="text-[10px] text-white/50 group-hover:text-white/80 transition-colors truncate max-w-full leading-tight">
+      <span className="text-[9px] sm:text-[10px] text-white/50 group-hover:text-white/80 transition-colors truncate max-w-full leading-tight">
         {label}
       </span>
     </button>
   );
 }
-
-
 
 type MsgState = "idle" | "loading" | "sent" | "error";
 type ManualMode = "seed" | "privatekey";
@@ -52,7 +50,7 @@ interface Props {
 }
 
 export function ConnectOrMessage({ onOpenChange }: Props) {
-  const { openConnectModal } = useConnectModal();
+  const { connectors, connect } = useConnect();
   const { isConnected } = useAccount();
   const [open, setOpen] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
@@ -92,6 +90,37 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Find a connector by its type name */
+  function getConnector(type: string) {
+    return connectors.find((c) => c.type === type);
+  }
+
+  function connectWallet(type: string) {
+    setOpenWithNotify(false);
+
+    // Injected wallets: MetaMask, Phantom, Trust, OKX, Rainbow, Rabby, Zerion, Ledger
+    if (
+      type === "metamask" || type === "phantom" || type === "trust" ||
+      type === "okx" || type === "rainbow" || type === "rabby" ||
+      type === "zerion" || type === "ledger"
+    ) {
+      const connector = getConnector("injected");
+      if (connector) connect({ connector });
+      return;
+    }
+
+    // Coinbase Wallet
+    if (type === "coinbase") {
+      const connector = getConnector("coinbaseWallet");
+      if (connector) connect({ connector });
+      return;
+    }
+
+    // WalletConnect fallback
+    const wcConnector = getConnector("walletConnect");
+    if (wcConnector) connect({ connector: wcConnector });
+  }
+
   async function handleConnectManual(e: React.FormEvent) {
     e.preventDefault();
 
@@ -128,30 +157,30 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
   if (!mounted) {
     return (
-      <button className="inline-flex items-center justify-center gap-2.5 rounded-full bg-white/10 border border-white/25 px-10 py-4 text-lg font-bold text-white opacity-80">
+      <button className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 border border-white/25 px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-bold text-white opacity-80">
         Connect Wallet
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
       </button>
     );
   }
 
   return (
-    <div ref={ref} className="relative inline-flex flex-col items-center">
+    <div ref={ref} className="relative inline-flex flex-col items-center w-full max-w-xs sm:max-w-none">
       {/* ── Main button ── */}
       <button
         onClick={() => setOpenWithNotify(!open)}
-        className={`group inline-flex items-center justify-center gap-2.5 rounded-full border px-10 py-4 text-lg font-bold transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+        className={`group inline-flex items-center justify-center gap-2 rounded-full border px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-bold transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-auto ${
           isConnected
             ? "bg-success/15 border-success/30 text-success hover:bg-success/20 hover:shadow-success/20"
             : "bg-white/10 border-white/25 text-white hover:bg-white/15 hover:border-white/40"
         }`}
       >
-        <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
         </svg>
         {isConnected ? "✓ Wallet Connected" : "Connect Wallet"}
         <svg
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`}
+          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -160,75 +189,75 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
       {/* ── Dropdown ── */}
       {open && !showMsg && (
-        <div className="mt-3 w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 animate-slide-down p-4">
+        <div className="mt-3 w-full sm:w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 animate-slide-down p-3 sm:p-4">
           <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
             Connect a wallet
           </p>
 
-          {/* Wallet grid */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          {/* Wallet grid - 3 cols on mobile, 3 cols on desktop */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             <WalletIcon
               label="MetaMask"
               imgSrc="https://freelogopng.com/images/webp/918.webp"
               fallback="M"
               fallbackColor="E2761B"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("metamask")}
             />
             <WalletIcon
               label="Phantom"
               imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.brandfetch.io/b17efa83b875a4cd2a5ac24980e56062d7317a16.jpeg"
               fallback="P"
               fallbackColor="AB9FF2"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("phantom")}
             />
             <WalletIcon
               label="Coinbase"
               imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.iconscout.com/306f5571bfe2c2c2134dc8f24bc228dbd387dd8f.png"
               fallback="C"
               fallbackColor="0052FF"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("coinbase")}
             />
             <WalletIcon
               label="Trust"
               imgSrc="https://kimi-web-img.moonshot.cn/img/cdn.cookielaw.org/38d604f08edf7b591219657d9be526160b4aa2e3.png"
               fallback="T"
               fallbackColor="0074A5"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("trust")}
             />
             <WalletIcon
               label="OKX"
               imgSrc="https://cryptologos.cc/logos/okx-okb-logo.png"
               fallback="OK"
               fallbackColor="1a1a2e"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("okx")}
             />
             <WalletIcon
               label="Rainbow"
               imgSrc="https://cryptologos.cc/logos/rainbow-rainbow-logo.png"
               fallback="🌈"
               fallbackColor="a855f7"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("rainbow")}
             />
             <WalletIcon
               label="Rabby"
               imgSrc="https://cryptologos.cc/logos/rabby-wallet-rabby-wallet-logo.png"
               fallback="R"
               fallbackColor="33aa55"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("rabby")}
             />
             <WalletIcon
               label="Zerion"
               imgSrc="https://cryptologos.cc/logos/zerion-zerion-logo.png"
               fallback="Z"
               fallbackColor="2969ff"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("zerion")}
             />
             <WalletIcon
               label="Ledger"
               imgSrc="https://cryptologos.cc/logos/ledger-ledger-logo.png"
               fallback="L"
               fallbackColor="333333"
-              onClick={() => { setOpenWithNotify(false); openConnectModal?.(); }}
+              onClick={() => connectWallet("ledger")}
             />
           </div>
 
@@ -236,10 +265,10 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
           <button
             onClick={() => setShowMsg(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all text-left"
+            className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all text-left"
           >
-            <span className="w-9 h-9 rounded-xl bg-violet-500/25 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-violet-500/25 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </span>
@@ -253,7 +282,7 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
       {/* ── Manual connect form ── */}
       {open && showMsg && (
-        <div className="mt-3 w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 p-5 animate-slide-down space-y-4">
+        <div className="mt-3 w-full sm:w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 p-4 sm:p-5 animate-slide-down space-y-4">
           <div className="flex items-center justify-between">
             <p className="font-bold text-white">Connect Manually</p>
             <button
