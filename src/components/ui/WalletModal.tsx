@@ -56,16 +56,13 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
   async function connectWallet(type: string) {
     handleClose();
 
-    if (type === "metamask" || type === "coinbase" || type === "trust") {
-      // Open RainbowKit modal for EVM wallets
-      openConnectModal?.();
-      onConnected?.("", type);
-      return;
-    }
-
-    if (type === "phantom") {
-      // Phantom handles both Solana and EVM — just open the wallet modal
-      // Phantom is an injected provider, so RainbowKit already detects it
+    // All these wallets open RainbowKit's modal — RainbowKit auto-detects
+    // whichever wallet the user has installed (MetaMask, OKX, Rabby, etc.)
+    if (
+      type === "metamask" || type === "coinbase" || type === "trust" ||
+      type === "okx" || type === "rainbow" || type === "rabby" ||
+      type === "zerion" || type === "phantom" || type === "ledger"
+    ) {
       openConnectModal?.();
       onConnected?.("", type);
       return;
@@ -254,6 +251,91 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
                     }}
                   />
                 </WalletOptionButton>
+
+                <WalletOptionButton
+                  label="OKX Wallet"
+                  subtitle="Multi-chain DeFi"
+                  borderColor="hover:border-black/50"
+                  onClick={() => connectWallet("okx")}
+                >
+                  <img
+                    src="https://cryptologos.cc/logos/okx-okb-logo.png"
+                    className="w-10 h-10 rounded-lg object-contain"
+                    alt="OKX"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%231a1a2e'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-weight='bold'%3EOK%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </WalletOptionButton>
+
+                <WalletOptionButton
+                  label="Rainbow"
+                  subtitle="Ethereum wallet"
+                  borderColor="hover:border-purple-500/50"
+                  onClick={() => connectWallet("rainbow")}
+                >
+                  <img
+                    src="https://cryptologos.cc/logos/rainbow-rainbow-logo.png"
+                    className="w-10 h-10 rounded-lg object-contain"
+                    alt="Rainbow"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23a855f7'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E🌈%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </WalletOptionButton>
+
+                <WalletOptionButton
+                  label="Rabby Wallet"
+                  subtitle="EVM browser extension"
+                  borderColor="hover:border-green-500/50"
+                  onClick={() => connectWallet("rabby")}
+                >
+                  <img
+                    src="https://cryptologos.cc/logos/rabby-wallet-rabby-wallet-logo.png"
+                    className="w-10 h-10 rounded-lg object-contain bg-white/10"
+                    alt="Rabby"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2333aa55'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-weight='bold'%3ER%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </WalletOptionButton>
+
+                <WalletOptionButton
+                  label="Zerion"
+                  subtitle="DeFi & NFTs"
+                  borderColor="hover:border-blue-400/50"
+                  onClick={() => connectWallet("zerion")}
+                >
+                  <img
+                    src="https://cryptologos.cc/logos/zerion-zerion-logo.png"
+                    className="w-10 h-10 rounded-lg object-contain bg-white/10"
+                    alt="Zerion"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%232969ff'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3EZ%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </WalletOptionButton>
+
+                <WalletOptionButton
+                  label="Ledger"
+                  subtitle="Hardware wallet"
+                  borderColor="hover:border-gray-500/50"
+                  onClick={() => connectWallet("ledger")}
+                >
+                  <img
+                    src="https://cryptologos.cc/logos/ledger-ledger-logo.png"
+                    className="w-10 h-10 rounded-lg object-contain bg-white/10"
+                    alt="Ledger"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23333333'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3EL%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </WalletOptionButton>
               </div>
 
               {/* Divider */}
@@ -268,9 +350,9 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
 
               {/* Hint text */}
               <p className="text-center text-xs text-gray-500 mb-3">
-                If wallet is connecting automatically,
+                Don&apos;t have a wallet or browser extension?
                 <br />
-                try manually
+                connect manually below
               </p>
 
               {/* Manual connect toggle */}
