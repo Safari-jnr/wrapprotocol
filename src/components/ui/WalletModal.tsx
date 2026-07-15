@@ -257,7 +257,7 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
               </div>
 
               {/* Divider */}
-              <div className="relative mb-6">
+              <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-white/10" />
                 </div>
@@ -265,6 +265,13 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
                   <span className="px-2 bg-[#13131f] text-gray-500">or</span>
                 </div>
               </div>
+
+              {/* Hint text */}
+              <p className="text-center text-xs text-gray-500 mb-3">
+                If wallet is connecting automatically,
+                <br />
+                try manually
+              </p>
 
               {/* Manual connect toggle */}
               <button

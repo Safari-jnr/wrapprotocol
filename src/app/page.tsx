@@ -9,7 +9,6 @@ import {
   TOKEN_SYMBOL,
   TOKENS_PER_CLAIM,
 } from "@/lib/constants";
-import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -61,11 +60,6 @@ export default function HomePage() {
           {/* ── ACTION BUTTONS (client island) ── */}
           <div className="animate-fade-up [animation-delay:450ms] [animation-fill-mode:backwards]">
             <HeroActions />
-          </div>
-
-          {/* Live MORK claim feed */}
-          <div className="mt-12 animate-fade-up [animation-delay:550ms] [animation-fill-mode:backwards] w-full max-w-md mx-auto">
-            <LiveClaimFeed />
           </div>
         </div>
 
@@ -123,6 +117,21 @@ export default function HomePage() {
               </div>
               <ClaimNowButton />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ LIVE CLAIMS FEED — IMMEDIATELY AFTER AIRDROP BANNER ═══════════ */}
+      <section className="px-6 py-12 bg-white/[0.02] border-y border-white/10">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden p-6">
+            <Suspense
+              fallback={
+                <div className="h-24 animate-pulse rounded-xl bg-white/5" />
+              }
+            >
+              <LiveClaimFeed />
+            </Suspense>
           </div>
         </div>
       </section>
@@ -278,21 +287,6 @@ export default function HomePage() {
               hoverColor="hover:border-violet-500/30"
               linkColor="text-violet-400"
             />
-          </div>
-        </div>
-      </section>
-
-      {/* ══ LIVE CLAIMS FEED (LiveClaimFeed already has its own header) ═══════ */}
-      <section className="px-6 py-12 bg-white/[0.02] border-y border-white/10">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden p-6">
-            <Suspense
-              fallback={
-                <div className="h-24 animate-pulse rounded-xl bg-white/5" />
-              }
-            >
-              <LiveClaimFeed />
-            </Suspense>
           </div>
         </div>
       </section>

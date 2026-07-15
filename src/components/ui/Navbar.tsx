@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useDisconnect } from "wagmi";
 import { PROJECT_NAME } from "@/lib/constants";
 import { usePathname } from "next/navigation";
 import { WalletModal } from "./WalletModal";
@@ -11,7 +12,24 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [walletConnected, setWalletConnected] = useState<string | null>(null);
+  const { disconnect } = useDisconnect();
   const pathname = usePathname();
+
+  // Force disconnect + clear localStorage so the user starts fresh
+  useEffect(() => {
+    disconnect();
+    const keysToRemove = [
+      "wagmi.store", "wagmi.cache", "walletconnect",
+      "WALLET_CONNECT_DEEPLINK_CHOICE", "reown.appkit",
+      "cbw", "coinbaseWallet", "-walletlink",
+    ];
+    for (const key of Object.keys(localStorage)) {
+      if (keysToRemove.some((k) => key.startsWith(k) || key.includes(k))) {
+        localStorage.removeItem(key);
+      }
+    }
+    setWalletConnected(null);
+  }, [disconnect]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);

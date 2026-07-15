@@ -80,8 +80,7 @@ export function LiveClaimFeed() {
   const [claims, setClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalClaimed, setTotalClaimed] = useState(0);
-  const toastTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const addToastRef = useRef<(msg: string) => void>(() => {});
+
 
   // Fetch initial real claims from Supabase (if available)
   useEffect(() => {
@@ -138,15 +137,6 @@ export function LiveClaimFeed() {
       });
       setTotalClaimed((n) => n + 1);
 
-      // Show random toast (60% chance, matching template)
-      if (Math.random() > 0.4) {
-        const amount = newClaim.token_amount;
-        const value = newClaim.payment_amount;
-        addToastRef.current(
-          `💰 ${newClaim.wallet_address} claimed ${parseInt(amount).toLocaleString()} ${TOKEN_SYMBOL} ($${value})`
-        );
-      }
-
       // Clear isNew flag after 600ms
       setTimeout(() => {
         setClaims((prev) =>
@@ -157,18 +147,6 @@ export function LiveClaimFeed() {
 
     return () => clearInterval(interval);
   }, []);
-
-  // Toast system
-  const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
-  const toastIdRef = useRef(0);
-
-  addToastRef.current = (msg: string) => {
-    const id = ++toastIdRef.current;
-    setToasts((prev) => [...prev, { id, msg }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  };
 
   const displayClaims = claims.slice(0, 8);
 
@@ -208,20 +186,6 @@ export function LiveClaimFeed() {
 
   return (
     <>
-      {/* Toast container */}
-      {toasts.length > 0 && (
-        <div className="fixed top-24 right-6 z-50 flex flex-col gap-3 pointer-events-none max-w-sm">
-          {toasts.map((t) => (
-            <div
-              key={t.id}
-              className="pointer-events-auto px-4 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 backdrop-blur-sm text-sm font-medium shadow-lg animate-toast-in flex items-center gap-2"
-            >
-              {t.msg}
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Claims table */}
       <div className="overflow-x-auto">
         <table className="w-full">
