@@ -15,7 +15,7 @@ export default function HomePage() {
     <>
 
       {/* ══ HERO ════════════════════════════════════════════════════════════ */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
+      <section className="relative pt-28 pb-20 md:pt-48 md:pb-32 px-5 sm:px-6 overflow-hidden">
         {/* Background orbs */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
           <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
@@ -24,7 +24,7 @@ export default function HomePage() {
 
         <div className="relative max-w-5xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-purple-500/20 mb-8 animate-fade-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-purple-500/20 mb-10 animate-fade-up">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
@@ -34,20 +34,20 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 leading-[1.1] tracking-tight animate-fade-up [animation-delay:100ms] [animation-fill-mode:backwards]">
+          <h1 className="text-[1.65rem] sm:text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 sm:mb-8 leading-[1.15] tracking-tight animate-fade-up [animation-delay:100ms] [animation-fill-mode:backwards]">
             Discover
             <br />
             <span className="gradient-text">The Real Web3</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
+          <p className="text-sm sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 sm:mb-12 leading-relaxed animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
             ExploreDapps.fun is your gateway to everything Web3. Track your
             wallets, discover DApps, find airdrops, and explore NFTs, DAOs,
             DeFi, GameFi across EVM and Solana.
           </p>
 
           {/* Stats — server-rendered */}
-          <div className="animate-fade-up [animation-delay:350ms] [animation-fill-mode:backwards] mb-12">
+          <div className="animate-fade-up [animation-delay:350ms] [animation-fill-mode:backwards] mb-14">
             <Suspense
               fallback={
                 <div className="h-16 animate-pulse rounded-xl bg-white/5" />
@@ -64,7 +64,7 @@ export default function HomePage() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+        <div className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2">
           <div className="flex flex-col items-center gap-2 text-white/20">
             <span className="text-xs tracking-widest uppercase">Scroll</span>
             <svg
@@ -87,27 +87,27 @@ export default function HomePage() {
       {/* ══ MORK TOKEN AIRDROP BANNER ═══════════════════════════════════════ */}
       <section className="px-6 py-6" id="airdrop">
         <div className="max-w-4xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-purple-900/40 via-blue-900/40 to-cyan-900/40 border border-purple-500/30 p-8 md:p-10">
+          <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-purple-900/40 via-blue-900/40 to-cyan-900/40 border border-purple-500/30 p-6 md:p-10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2" />
 
-            <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-10">
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-linear-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-purple-500/30 flex-shrink-0">
-                <span className="text-3xl md:text-4xl font-bold text-white">
+            <div className="relative flex flex-col md:flex-row items-center gap-4 md:gap-10 text-center md:text-left">
+              <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-linear-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-purple-500/30 flex-shrink-0">
+                <span className="text-2xl md:text-4xl font-bold text-white">
                   M
                 </span>
               </div>
               <div className="text-center md:text-left flex-1">
-                <div className="flex items-center gap-2 justify-center md:justify-start mb-2">
+                <div className="flex items-center gap-1.5 md:gap-2 justify-center md:justify-start mb-2 flex-wrap">
                   <span className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider">
                     Live Airdrop
                   </span>
                   <span className="text-xs text-gray-400">Ends in 14 days</span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
                   Connect Wallet &amp; Receive MORK Token
                 </h2>
-                <p className="text-gray-400 text-sm md:text-base">
+                <p className="text-gray-400 text-xs sm:text-sm md:text-base">
                   Link your wallet to ExploreDapps and instantly receive{" "}
                   <span className="text-purple-400 font-semibold">
                     {TOKENS_PER_CLAIM.toLocaleString()} MORK
@@ -137,18 +137,18 @@ export default function HomePage() {
       </section>
 
       {/* ══ EXPLORE WEB3 CATEGORIES ═════════════════════════════════════════ */}
-      <section className="py-24 px-6" id="categories">
+      <section className="py-16 md:py-24 px-4 sm:px-6" id="categories">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
               Explore Web3 Categories
             </h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            <p className="text-sm sm:text-lg text-gray-400 max-w-2xl mx-auto">
               Discover the best decentralized applications across all major
               categories
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <CategoryCard
               icon={
                 <svg
@@ -292,18 +292,18 @@ export default function HomePage() {
       </section>
 
       {/* ══ TRENDING DAPPS ══════════════════════════════════════════════════ */}
-      <section className="py-24 px-6 bg-white/[0.02] border-y border-white/10">
+      <section className="py-16 md:py-24 px-4 sm:px-6 bg-white/[0.02] border-y border-white/10">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
                 Trending DApps
               </h2>
-              <p className="text-gray-400">
+              <p className="text-sm sm:text-base text-gray-400">
                 Most popular decentralized applications this week
               </p>
             </div>
-            <button className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors">
+            <button className="shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs sm:text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors">
               View All
             </button>
           </div>
@@ -371,15 +371,15 @@ function CategoryCard({
 }) {
   return (
     <div
-      className={`group p-8 rounded-2xl bg-white/5 backdrop-blur-[10px] border border-white/10 card-hover cursor-pointer ${hoverColor} transition-all duration-300`}
+      className={`group p-5 md:p-8 rounded-2xl bg-white/5 backdrop-blur-[10px] border border-white/10 card-hover cursor-pointer ${hoverColor} transition-all duration-300`}
     >
       <div
-        className={`w-14 h-14 rounded-2xl bg-linear-to-br ${color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}
+        className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-linear-to-br ${color} flex items-center justify-center mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform`}
       >
         {icon}
       </div>
-      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-gray-400 text-sm leading-relaxed mb-4">{body}</p>
+      <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3">{title}</h3>
+      <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-3 md:mb-4">{body}</p>
       <div
         className={`flex items-center ${linkColor} text-sm font-semibold`}
       >
@@ -420,10 +420,10 @@ function DAppCard({
   barColor: string;
 }) {
   return (
-    <div className="p-5 rounded-2xl bg-white/5 backdrop-blur-[10px] border border-white/10 hover:border-white/20 transition-all cursor-pointer group">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="p-4 md:p-5 rounded-2xl bg-white/5 backdrop-blur-[10px] border border-white/10 hover:border-white/20 transition-all cursor-pointer group">
+      <div className="flex items-center gap-3 mb-3 md:mb-4">
         <div
-          className={`w-12 h-12 rounded-xl bg-linear-to-br ${barColor} flex items-center justify-center text-white font-bold shadow-lg`}
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-linear-to-br ${barColor} flex items-center justify-center text-white font-bold shadow-lg`}
         >
           {logo}
         </div>

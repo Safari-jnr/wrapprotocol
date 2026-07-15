@@ -19,8 +19,8 @@ const footerLinks = {
 export function Footer() {
   return (
     <footer className="border-t border-white/10 bg-[#07070c]">
-      <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 mb-8 md:mb-12">
           {/* Brand */}
           <div className="md:col-span-1 space-y-4">
             <Link href="/" className="flex items-center gap-2 group">
@@ -57,14 +57,14 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="pt-6 md:pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-600">
             &copy; {new Date().getFullYear()} {PROJECT_NAME}.fun. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-gray-600 hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-white transition-colors">Cookies</a>
+          <div className="flex items-center gap-4 sm:gap-6 flex-wrap justify-center">
+            <a href="#" className="text-xs sm:text-sm text-gray-600 hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#" className="text-xs sm:text-sm text-gray-600 hover:text-white transition-colors">Terms of Service</a>
+            <a href="#" className="text-xs sm:text-sm text-gray-600 hover:text-white transition-colors">Cookies</a>
           </div>
         </div>
       </div>

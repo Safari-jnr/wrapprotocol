@@ -56,15 +56,15 @@ export function Navbar() {
             : "bg-transparent"
         }`}
       >
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-4 gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-3 hover:opacity-80 transition-opacity duration-300">
-            <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform duration-300">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Link href="/" className="group flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity duration-300 shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-linear-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform duration-300">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">{PROJECT_NAME}.fun</span>
+            <span className="text-base sm:text-xl font-bold tracking-tight text-white">{PROJECT_NAME}.fun</span>
           </Link>
 
           {/* Desktop nav */}
@@ -86,7 +86,7 @@ export function Navbar() {
           </div>
 
           {/* Wallet section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {walletConnected ? (
               <div className="flex items-center gap-3">
                 <div className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold flex items-center gap-1.5">
@@ -103,7 +103,7 @@ export function Navbar() {
             ) : (
               <button
                 onClick={() => setWalletModalOpen(true)}
-                className="px-5 py-2.5 bg-linear-to-r from-purple-600 to-blue-600 rounded-xl text-sm font-semibold text-white hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300"
+                className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-purple-600 to-blue-600 rounded-xl text-xs sm:text-sm font-semibold text-white hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300"
               >
                 Connect Wallet
               </button>

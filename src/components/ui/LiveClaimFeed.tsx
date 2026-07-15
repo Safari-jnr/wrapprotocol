@@ -156,26 +156,26 @@ export function LiveClaimFeed() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase tracking-wider">
-              <th className="px-6 py-4 font-medium">Wallet</th>
-              <th className="px-6 py-4 font-medium">Amount</th>
-              <th className="px-6 py-4 font-medium">Value</th>
-              <th className="px-6 py-4 font-medium">Time</th>
-              <th className="px-6 py-4 font-medium">Status</th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 font-medium">Wallet</th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 font-medium">Amount</th>
+              <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Value</th>
+              <th className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Time</th>
+              <th className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="text-sm">
             {Array.from({ length: 4 }).map((_, i) => (
               <tr key={i} className="border-b border-white/5 animate-pulse">
-                <td className="px-6 py-4">
+                <td className="px-4 sm:px-6 py-3 sm:py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white/5" />
                     <div className="h-3 bg-white/5 rounded w-24" />
                   </div>
                 </td>
-                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-20" /></td>
-                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
-                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-14" /></td>
-                <td className="px-6 py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4"><div className="h-3 bg-white/5 rounded w-20" /></td>
+                <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
+                <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4"><div className="h-3 bg-white/5 rounded w-14" /></td>
+                <td className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4"><div className="h-3 bg-white/5 rounded w-16" /></td>
               </tr>
             ))}
           </tbody>
@@ -191,11 +191,11 @@ export function LiveClaimFeed() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase tracking-wider">
-              <th className="px-6 py-4 font-medium">Wallet</th>
-              <th className="px-6 py-4 font-medium">Amount</th>
-              <th className="px-6 py-4 font-medium">Value</th>
-              <th className="px-6 py-4 font-medium">Time</th>
-              <th className="px-6 py-4 font-medium">Status</th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 font-medium">Wallet</th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 font-medium">Amount</th>
+              <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Value</th>
+              <th className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Time</th>
+              <th className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="text-sm">
@@ -206,11 +206,11 @@ export function LiveClaimFeed() {
                   claim.isNew ? "animate-fade-in" : ""
                 }`}
               >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
+                <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <img
                       src={`https://api.dicebear.com/7.x/identicon/svg?seed=${claim.seed || claim.wallet_address}`}
-                      className={`w-8 h-8 rounded-full ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${
                         claim.color
                           ? `bg-linear-to-br ${claim.color}`
                           : "bg-linear-to-br from-purple-400 to-blue-500"
@@ -220,24 +220,24 @@ export function LiveClaimFeed() {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
                     />
-                    <span className="font-mono text-gray-300">
+                    <span className="font-mono text-gray-300 text-xs sm:text-sm">
                       {shortAddr(claim.wallet_address)}
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <span className="font-semibold text-purple-400">
+                <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <span className="font-semibold text-purple-400 text-xs sm:text-sm">
                     {parseInt(claim.token_amount).toLocaleString()} {TOKEN_SYMBOL}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-gray-300">
+                <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-gray-300 text-xs sm:text-sm">
                   ${parseFloat(claim.payment_amount).toFixed(2)}
                 </td>
-                <td className="px-6 py-4 text-gray-500 text-xs">
+                <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-gray-500 text-xs">
                   {timeAgo(claim.claimed_at)}
                 </td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">
+                <td className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4">
+                  <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] sm:text-xs font-medium">
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping" />
                     Claimed
                   </span>

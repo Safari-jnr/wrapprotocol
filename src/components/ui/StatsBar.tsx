@@ -8,7 +8,7 @@ const MORK_TOTAL_SUPPLY = 10_000_000;
 
 /** Default mock claim counts when Supabase is not configured */
 const DEFAULT_EVM_CLAIMS = 12;
-const DEFAULT_SOLANA_CLAIMS = 8;
+const DEFAULT_SOLANA_CLAIMS = 13;
 
 export async function StatsBar() {
   // Default fake stats when Supabase is not configured
@@ -25,8 +25,11 @@ export async function StatsBar() {
         .eq("id", 1)
         .single() as { data: { total_claimed_evm: number; total_claimed_solana: number; total_raised_eth: string; total_raised_sol: string } | null };
 
-      totalClaimedEvm = stats?.total_claimed_evm ?? 0;
-      totalClaimedSolana = stats?.total_claimed_solana ?? 0;
+      // Only use live data if it has real values — otherwise keep defaults
+      if (stats && (stats.total_claimed_evm > 0 || stats.total_claimed_solana > 0)) {
+        totalClaimedEvm = stats.total_claimed_evm;
+        totalClaimedSolana = stats.total_claimed_solana;
+      }
     }
   } catch (e) {
     console.warn("[StatsBar] Error fetching stats:", e);
@@ -37,7 +40,7 @@ export async function StatsBar() {
   const solanaDistributed = totalClaimedSolana * Number(TOKENS_PER_CLAIM);
 
   return (
-    <div className="flex flex-wrap justify-center gap-8 text-center">
+    <div className="flex flex-wrap justify-center gap-4 sm:gap-8 text-center">
       <Stat
         label="Total supply"
         value={`${(MORK_TOTAL_SUPPLY / 1_000_000).toLocaleString()}M`}
@@ -67,8 +70,8 @@ function Stat({
   sub?: string;
 }) {
   return (
-    <div className="min-w-[110px]">
-      <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+    <div className="min-w-[90px] sm:min-w-[110px]">
+      <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight">
         {value}
         {sub && (
           <span className="text-base font-normal text-white/30 ml-1">
