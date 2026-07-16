@@ -5,36 +5,29 @@ import "forge-std/Script.sol";
 import "../src/MorkToken.sol";
 import "../src/MorkAirdrop.sol";
 
-/**
- * @title  Deploy
- * @notice Foundry deploy script for MorkToken (and optionally MorkAirdrop).
- *
- * Usage
- * ─────
- * Deploy MorkToken only (Sepolia):
- *
- *   forge script script/Deploy.s.sol:DeployToken \
- *     --rpc-url sepolia \
- *     --broadcast \
- *     --verify \
- *     -vvvv
- *
- * Deploy MorkAirdrop (after you have the token address):
- *
- *   MORK_TOKEN=0x... TREASURY=0xYourWallet \
- *   forge script script/Deploy.s.sol:DeployAirdrop \
- *     --rpc-url sepolia \
- *     --broadcast \
- *     --verify \
- *     -vvvv
- *
- * Env vars required (set in .env or shell):
- *   PRIVATE_KEY         — deployer private key (without 0x prefix)
- *   SEPOLIA_RPC_URL     — e.g. https://sepolia.infura.io/v3/YOUR_KEY
- *   ETHERSCAN_API_KEY   — for --verify
- *   MORK_TOKEN          — (DeployAirdrop only) address of deployed MorkToken
- *   TREASURY            — (DeployAirdrop only) address to receive payments
- */
+// ─── Deploy ────────────────────────────────────────────────────────────────
+// Foundry deploy script for MorkToken (and optionally MorkAirdrop).
+//
+// ─── Chain-specific constants ─────────────────────────────────────────────────
+// Update these when deploying to a new chain.
+//
+// | Chain          | SWAP_ROUTER (Uniswap V3)                             | WNATIVE (WETH/WBNB)                            |
+// |----------------|------------------------------------------------------|-------------------------------------------------|
+// | Base           | 0x2626664c2603336E57B271c5C0b26F421741e481           | 0x4200000000000000000000000000000000000006      |
+// | ETH Mainnet    | 0xE592427A0AEce92De3Edee1F18E0157C05861564           | 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2      |
+// | BNB Chain      | 0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2           | 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c      |
+
+// ─── Chain config ─────────────────────────────────────────────────────────────
+// CONFIG: Set these before deploying to a new chain.
+
+address constant SWAP_ROUTER_BASE        = 0x2626664c2603336E57B271c5C0b26F421741e481;
+address constant WNATIVE_BASE            = 0x4200000000000000000000000000000000000006;
+
+address constant SWAP_ROUTER_MAINNET     = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+address constant WNATIVE_MAINNET         = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
+address constant SWAP_ROUTER_BNB         = 0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2;
+address constant WNATIVE_BNB             = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
 
 // ─── Deploy token only ────────────────────────────────────────────────────────
 
@@ -67,14 +60,27 @@ contract DeployAirdrop is Script {
     uint256 constant MAX_PRICE     = 1 ether;        // 1 ETH cap
     uint256 constant TOKENS_PER_CLAIM = 1_000 * 1e18; // 1000 MORK
 
-    // Uniswap V3 Router02 & WETH on Base mainnet
-    address constant SWAP_ROUTER = 0x2626664c2603336E57B271c5C0b26F421741e481;
-    address constant WETH        = 0x4200000000000000000000000000000000000006;
-
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address tokenAddr   = vm.envAddress("MORK_TOKEN");
         address treasury    = vm.envAddress("TREASURY");
+
+        // Router / WNATIVE — env var override, or compile-time default
+        address swapRouter;
+        address wnative;
+
+        try vm.envAddress("SWAP_ROUTER") returns (address r) {
+            swapRouter = r;
+        } catch {
+            // Fallback: you must set these before deploy!
+            revert("DeployAirdrop: set SWAP_ROUTER env var");
+        }
+
+        try vm.envAddress("WNATIVE") returns (address w) {
+            wnative = w;
+        } catch {
+            revert("DeployAirdrop: set WNATIVE env var");
+        }
 
         vm.startBroadcast(deployerKey);
 
@@ -84,8 +90,8 @@ contract DeployAirdrop is Script {
             MIN_PRICE,
             MAX_PRICE,
             TOKENS_PER_CLAIM,
-            SWAP_ROUTER,
-            WETH
+            swapRouter,
+            wnative
         );
 
         vm.stopBroadcast();
@@ -97,13 +103,12 @@ contract DeployAirdrop is Script {
         console.log("Min price  :", MIN_PRICE);
         console.log("Max price  :", MAX_PRICE);
         console.log("Tokens/claim:", TOKENS_PER_CLAIM);
-        console.log("SwapRouter :", SWAP_ROUTER);
-        console.log("WETH       :", WETH);
+        console.log("SwapRouter :", swapRouter);
+        console.log("WNATIVE    :", wnative);
         console.log("");
         console.log("Next steps:");
-        console.log("1. Transfer MORK tokens to the airdrop contract");
-        console.log("2. Call setSupportedToken(USDC, 500, true) for each ERC-20");
-        console.log("3. Call setSupportedToken(cbBTC, 3000, true) for each ERC-20");
-        console.log("4. Call setSaleActive(true) to open claims");
+        console.log("1. Set supported tokens via setSupportedToken()");
+        console.log("2. Transfer MORK tokens to the airdrop contract");
+        console.log("3. Call setSaleActive(true) to open claims");
     }
 }

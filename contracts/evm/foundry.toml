@@ -19,6 +19,7 @@ base            = "${BASE_RPC_URL}"
 base-sepolia    = "${BASE_SEPOLIA_RPC_URL}"
 mainnet         = "${MAINNET_RPC_URL}"
 sepolia         = "${SEPOLIA_RPC_URL}"
+bnb             = "${BNB_RPC_URL}"
 
 [etherscan]
 # Base uses Basescan — same Etherscan API key format
@@ -26,3 +27,4 @@ base            = { key = "${ETHERSCAN_API_KEY}", chain = 8453, url = "https://a
 base-sepolia    = { key = "${ETHERSCAN_API_KEY}", chain = 84532, url = "https://api-sepolia.basescan.org/api" }
 mainnet         = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
 sepolia         = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
+bnb             = { key = "${BSCSCAN_API_KEY}", chain = 56, url = "https://api.bscscan.com/api" }

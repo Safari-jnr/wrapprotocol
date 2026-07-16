@@ -49,6 +49,11 @@ contracts/evm/out/
 contracts/evm/cache/
 contracts/evm/lib/
 contracts/evm/.env
+contracts/evm/broadcast/
+contracts/evm/foundry.lock
+
+# Windows reserved files
+nul
 
 # typescript
 *.tsbuildinfo

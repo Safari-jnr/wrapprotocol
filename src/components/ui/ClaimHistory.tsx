@@ -73,7 +73,7 @@ export async function ClaimHistory({ limit = 20 }: { limit?: number }) {
             {claims.map((claim) => {
               const explorerUrl =
                 claim.chain === "evm"
-                  ? `${EVM_EXPLORER[EVM_CHAIN]}/tx/${claim.tx_hash}`
+                  ? `${EVM_EXPLORER}/tx/${claim.tx_hash}`
                   : `${SOLANA_EXPLORER_BASE}/tx/${claim.tx_hash}`;
 
               return (

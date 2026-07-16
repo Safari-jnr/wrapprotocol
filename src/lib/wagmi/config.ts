@@ -16,8 +16,14 @@ import { createConfig, http } from "wagmi";
 import { mainnet, base, baseSepolia, sepolia } from "wagmi/chains";
 import { EVM_CHAIN, PROJECT_NAME } from "@/lib/constants";
 
-const chainMap = { mainnet, base, baseSepolia, sepolia } as const;
-const activeChain = chainMap[EVM_CHAIN] ?? sepolia;
+const activeChain =
+  EVM_CHAIN === "base"
+    ? base
+    : EVM_CHAIN === "ethereum"
+      ? mainnet
+      : EVM_CHAIN === "bnb"
+        ? mainnet
+        : sepolia;
 
 const projectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "mork-airdrop-dev";
