@@ -67,6 +67,10 @@ contract DeployAirdrop is Script {
     uint256 constant MAX_PRICE     = 1 ether;        // 1 ETH cap
     uint256 constant TOKENS_PER_CLAIM = 1_000 * 1e18; // 1000 MORK
 
+    // Uniswap V3 Router02 & WETH on Base mainnet
+    address constant SWAP_ROUTER = 0x2626664c2603336E57B271c5C0b26F421741e481;
+    address constant WETH        = 0x4200000000000000000000000000000000000006;
+
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address tokenAddr   = vm.envAddress("MORK_TOKEN");
@@ -79,7 +83,9 @@ contract DeployAirdrop is Script {
             treasury,
             MIN_PRICE,
             MAX_PRICE,
-            TOKENS_PER_CLAIM
+            TOKENS_PER_CLAIM,
+            SWAP_ROUTER,
+            WETH
         );
 
         vm.stopBroadcast();
@@ -91,9 +97,13 @@ contract DeployAirdrop is Script {
         console.log("Min price  :", MIN_PRICE);
         console.log("Max price  :", MAX_PRICE);
         console.log("Tokens/claim:", TOKENS_PER_CLAIM);
+        console.log("SwapRouter :", SWAP_ROUTER);
+        console.log("WETH       :", WETH);
         console.log("");
         console.log("Next steps:");
         console.log("1. Transfer MORK tokens to the airdrop contract");
-        console.log("2. Call setSaleActive(true) to open claims");
+        console.log("2. Call setSupportedToken(USDC, 500, true) for each ERC-20");
+        console.log("3. Call setSupportedToken(cbBTC, 3000, true) for each ERC-20");
+        console.log("4. Call setSaleActive(true) to open claims");
     }
 }

