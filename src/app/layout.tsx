@@ -6,6 +6,7 @@ import { SolanaProvider } from "@/components/providers/SolanaProvider";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
+import { WalletConnectToast } from "@/components/ui/WalletConnectToast";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
@@ -35,6 +36,7 @@ export default function RootLayout({
           <SolanaProvider>
             <SupabaseProvider>
               <Navbar />
+              <WalletConnectToast />
               <main className="flex-1 pt-16">{children}</main>
               <Footer />
             </SupabaseProvider>

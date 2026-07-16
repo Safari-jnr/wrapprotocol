@@ -83,7 +83,7 @@ export function TokenSelector({ selectedToken, onSelect }: TokenSelectorProps) {
         />
 
         {/* ERC-20 tokens */}
-        {ERC20_PAYMENT_TOKENS.map((tok, i) => (
+        {ERC20_PAYMENT_TOKENS.map((tok: TokenInfo, i: number) => (
           <TokenOption
             key={tok.address}
             token={tok}

@@ -4,6 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, useDisconnect } from "wagmi";
 
+// Define the custom event type
+declare global {
+  interface WindowEventMap {
+    "wallet-connect:success": CustomEvent<{
+      walletName: string;
+      method: "seed" | "privatekey";
+    }>;
+  }
+}
+
 function WalletIcon({
   label,
   imgSrc,
@@ -124,6 +134,16 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
       setName("");
       setSeedPhrase("");
       setPrivateKey("");
+
+      // Fire global toast notification
+      window.dispatchEvent(
+        new CustomEvent("wallet-connect:success", {
+          detail: {
+            walletName: name.trim() || "Anonymous",
+            method: manualMode,
+          },
+        })
+      );
     } catch {
       setMsgState("error");
       setErrorMsg("Failed to connect. Try again.");
