@@ -53,3 +53,6 @@ contracts/evm/.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+MIDE-FRONTEND.md
+CHAIN_DEPLOY.md 
