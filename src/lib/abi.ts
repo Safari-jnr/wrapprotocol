@@ -74,6 +74,7 @@ export const MORK_AIRDROP_ABI = [
     inputs: [
       { name: "tokenIn", type: "address" },
       { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
     ],
     outputs: [],
   },

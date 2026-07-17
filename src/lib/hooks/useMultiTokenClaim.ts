@@ -269,11 +269,16 @@ export function useMultiTokenClaim() {
     try {
       setStage("confirming");
       setErrorMsg("");
+
+      // Slippage protection: accept at least 95% of the quoted ETH output
+      const estimated = estimatedEth ?? 0n;
+      const amountOutMin = estimated > 0n ? (estimated * 95n) / 100n : 0n;
+
       const hash = await writeContractAsync({
         address: airdropContract,
         abi: AIRDROP_ABI,
         functionName: "claimWithToken",
-        args: [selectedTokenInfo.address, claimTokenAmount],
+        args: [selectedTokenInfo.address, claimTokenAmount, amountOutMin],
       });
       setTxHash(hash);
       setStage("pending");

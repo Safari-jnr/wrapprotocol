@@ -96,7 +96,7 @@ export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
     ],
   },
   ethereum: {
-    airdropContract: (process.env.NEXT_PUBLIC_ETH_AIRDROP as `0x${string}`) ?? "0x0000000000000000000000000000000000000000",
+    airdropContract: (process.env.NEXT_PUBLIC_ETH_AIRDROP as `0x${string}`) ?? "0xD1b84c07ba9C34f0f8CF17381dC65D410F93F66F",
     morkToken: (process.env.NEXT_PUBLIC_ETH_MORK_TOKEN as `0x${string}`) ?? "0xFd236E2fc52a67b490e056EBD5dDC7D9AF335378",
     swapRouter: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
     wnative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
@@ -108,7 +108,8 @@ export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
       NATIVE_TOKEN,
       { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", symbol: "USDC", name: "USD Coin",      decimals: 6,  poolFee: 500 },
       { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", symbol: "USDT", name: "Tether USD",    decimals: 6,  poolFee: 500 },
-      { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI",  name: "Dai Stablecoin", decimals: 18, poolFee: 3000 },
+      { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI",  name: "Dai Stablecoin",      decimals: 18, poolFee: 3000 },
+      { address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", symbol: "wBTC", name: "Wrapped Bitcoin",       decimals: 8,  poolFee: 500 },
     ],
   },
   bnb: {

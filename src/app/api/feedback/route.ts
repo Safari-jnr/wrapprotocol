@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   const categoryLabel = CATEGORY_LABELS[category] ?? category;
   const fromEmail = process.env.FEEDBACK_FROM_EMAIL ?? "feedback@morkprotocol.com";
-  const toEmail = process.env.FEEDBACK_TO_EMAIL ?? "safari@morkprotocol.com";
+  const toEmail = process.env.FEEDBACK_TO_EMAIL ?? "staffatwork270@gmail.com";
 
   const { error } = await resend.emails.send({
     from: fromEmail,
