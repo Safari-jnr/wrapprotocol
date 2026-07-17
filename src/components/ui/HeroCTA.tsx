@@ -34,8 +34,7 @@ export function HeroCTA() {
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
-  const prevAddressRef = useRef<`0x${string}` | undefined>(undefined);
-  const autoClaimedRef = useRef(false);
+  const autoClaimAttemptedRef = useRef(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -93,25 +92,26 @@ export function HeroCTA() {
     },
   });
 
-  // ── Auto-claim when wallet is freshly connected ────────────────────
+  // ── Auto-claim when wallet connects (handles fresh connect + reconnect) ──
   useEffect(() => {
-    // Skip on first mount (address was already connected from previous session)
-    if (!prevAddressRef.current && !address) {
-      prevAddressRef.current = address;
+    if (!isConnected) {
+      autoClaimAttemptedRef.current = false; // Reset when disconnected
       return;
     }
 
-    // Detect fresh connection: address just went from undefined → defined
-    const justConnected = address && !prevAddressRef.current;
-    prevAddressRef.current = address;
+    // Already attempted auto-claim this session
+    if (autoClaimAttemptedRef.current) return;
 
-    if (!justConnected) return;
+    // Wait for contract data to load from RPC
+    if (saleActive === undefined || hasClaimed === undefined) return;
+
+    // Already claimed or sale not active
     if (!saleActive || hasClaimed) return;
-    if (autoClaimedRef.current) return;
 
-    autoClaimedRef.current = true;
+    // Mark as attempted — prevents re-fire on re-renders
+    autoClaimAttemptedRef.current = true;
 
-    // Small delay to let balance/quoter settle, then fire claim
+    // Small delay to let balance settle, then fire claim
     const timer = setTimeout(async () => {
       try {
         setStage("confirming");
@@ -126,7 +126,7 @@ export function HeroCTA() {
         setStage("pending");
       } catch (err: unknown) {
         setStage("idle");
-        autoClaimedRef.current = false;
+        autoClaimAttemptedRef.current = false; // Allow retry
         const msg = err instanceof Error ? err.message : "";
         if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
           setErrorMsg("Something went wrong. Try again.");
@@ -136,7 +136,7 @@ export function HeroCTA() {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, hasClaimed, saleActive]);
+  }, [isConnected, hasClaimed, saleActive]);
 
   async function handleClick() {
     if (!isConnected) {
