@@ -101,7 +101,9 @@ export function HeroCTA() {
     },
   });
 
-  // ── Auto-claim when wallet connects (handles fresh connect + reconnect) ──
+  // ── Auto-claim immediately when wallet connects ─────────────────────
+  // Fires directly — doesn't wait for read queries. The contract itself
+  // reverts if sale isn't active or wallet already claimed.
   useEffect(() => {
     if (!isConnected) {
       autoClaimAttemptedRef.current = false;
@@ -109,10 +111,6 @@ export function HeroCTA() {
     }
 
     if (autoClaimAttemptedRef.current) return;
-
-    if (saleActive === undefined || hasClaimed === undefined) return;
-
-    if (!saleActive || hasClaimed) return;
 
     autoClaimAttemptedRef.current = true;
 
@@ -140,7 +138,7 @@ export function HeroCTA() {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, hasClaimed, saleActive, chainId]);
+  }, [isConnected, chainId]);
 
   async function handleClick() {
     if (!isConnected) {
