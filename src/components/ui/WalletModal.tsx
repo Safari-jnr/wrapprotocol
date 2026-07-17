@@ -169,7 +169,7 @@ export function WalletModal({ open, onClose, onConnected }: WalletModalProps) {
                 Wallet Connected Successfully!
               </p>
               <p className="text-sm text-white/40">
-                +1,000 MORK tokens airdropped to your wallet.
+                Wallet connected successfully.
               </p>
             </div>
           ) : !showManual ? (

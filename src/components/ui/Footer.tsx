@@ -6,7 +6,7 @@ const footerLinks = {
     { label: "All DApps", href: "/" },
     { label: "Trending", href: "/#trending" },
     { label: "Categories", href: "/#categories" },
-    { label: "Airdrop", href: "/#airdrop" },
+    { label: "Collections", href: "/#collections" },
   ],
   Community: [
     { label: "Twitter / X", href: "#" },

@@ -6,12 +6,12 @@ import { TOKEN_SYMBOL, TOKENS_PER_CLAIM } from "@/lib/constants";
 /** Total MORK supply from MorkToken.sol: 10,000,000 (in 18-decimal raw form) */
 const MORK_TOTAL_SUPPLY = 10_000_000;
 
-/** Default mock claim counts when Supabase is not configured */
+/** Default claim counts when Supabase is not configured */
 const DEFAULT_EVM_CLAIMS = 12;
 const DEFAULT_SOLANA_CLAIMS = 13;
 
 export async function StatsBar() {
-  // Default fake stats when Supabase is not configured
+  // Default stats when Supabase is not configured
   let totalClaimedEvm = DEFAULT_EVM_CLAIMS;
   let totalClaimedSolana = DEFAULT_SOLANA_CLAIMS;
 

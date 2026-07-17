@@ -226,7 +226,7 @@ export function HeroCTA() {
     return (
       <div className="flex flex-col items-center gap-3">
         <div className="glass rounded-2xl px-8 py-5 text-center max-w-sm mx-auto">
-          <p className="text-white/60 text-sm">✓ This wallet has already claimed MORK.</p>
+          <p className="text-white/60 text-sm">✓ This wallet has already claimed.</p>
         </div>
         <DisconnectButton onClick={disconnect} />
       </div>

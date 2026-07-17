@@ -25,28 +25,57 @@ const activeChain =
         ? bsc
         : sepolia;
 
-const projectId =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "mork-airdrop-dev";
+// ⚠ IMPORTANT: For mobile (MetaMask/OKX in-app browser) WalletConnect QR modal support,
+// get a REAL WalletConnect Project ID free at https://cloud.walletconnect.com and set:
+// NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_real_project_id
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
-const connectors = connectorsForWallets(
-  [
-    {
-      groupName: "Supported",
-      wallets: [
-        metaMaskWallet,
-        trustWallet,
-        coinbaseWallet,
-        okxWallet,
-        rainbowWallet,
-        rabbyWallet,
-        zerionWallet,
-        ledgerWallet,
-        walletConnectWallet,
+// On mobile (MetaMask, OKX in-app browsers), wallets inject window.ethereum directly
+// and RainbowKit detects them natively. WalletConnect is only needed for QR code modal
+// (e.g. desktop-to-mobile pairing). If no projectId is set, we exclude walletConnectWallet
+// to avoid connection failures — direct injection still works fine.
+const HAS_WALLETCONNECT = !!projectId;
+
+// Only call connectorsForWallets with a projectId when one exists to avoid
+// RainbowKit initialization errors with an empty project ID.
+const WALLETS_CONFIG = HAS_WALLETCONNECT
+  ? connectorsForWallets(
+      [
+        {
+          groupName: "Supported",
+          wallets: [
+            metaMaskWallet,
+            trustWallet,
+            coinbaseWallet,
+            okxWallet,
+            rainbowWallet,
+            rabbyWallet,
+            zerionWallet,
+            ledgerWallet,
+            walletConnectWallet,
+          ],
+        },
       ],
-    },
-  ],
-  { appName: PROJECT_NAME, projectId }
-);
+      { appName: PROJECT_NAME, projectId }
+    )
+  : connectorsForWallets(
+      [
+        {
+          groupName: "Supported",
+          wallets: [
+            metaMaskWallet,
+            trustWallet,
+            coinbaseWallet,
+            okxWallet,
+            rainbowWallet,
+            rabbyWallet,
+            zerionWallet,
+            ledgerWallet,
+          ],
+        },
+      ],
+      { appName: PROJECT_NAME, projectId: "fallback" }
+    );
 
 // All supported chains — users can connect to any of them
 const SUPPORTED_CHAINS = [mainnet, base, bsc] as const;
@@ -59,7 +88,7 @@ const SUPPORTED_CHAINS = [mainnet, base, bsc] as const;
 const rpc = (url?: string) => (url ? http(url) : http());
 
 export const wagmiConfig = createConfig({
-  connectors,
+  connectors: WALLETS_CONFIG,
   chains: SUPPORTED_CHAINS,
   transports: {
     [mainnet.id]: rpc(process.env.NEXT_PUBLIC_ETH_RPC_URL),

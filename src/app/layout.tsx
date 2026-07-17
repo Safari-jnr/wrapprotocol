@@ -13,7 +13,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 export const metadata: Metadata = {
   title: "ExploreDapps.fun — Your Portal to Web3",
   description:
-    "Discover the best DApps, track your wallets, find airdrops, and explore DeFi, NFTs, DAOs, GameFi and more across EVM and Solana.",
+    "Discover the best DApps, track your wallets, and explore DeFi, NFTs, DAOs, GameFi and more across EVM and Solana.",
 };
 
 export default function RootLayout({

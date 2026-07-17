@@ -51,9 +51,6 @@ function WalletIcon({
   );
 }
 
-type MsgState = "idle" | "loading" | "sent" | "error";
-type ManualMode = "seed" | "privatekey";
-
 interface Props {
   /** Called whenever the dropdown opens or closes — parent uses this to hide elements below */
   onOpenChange?: (open: boolean) => void;
@@ -64,13 +61,6 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
-  const [showMsg, setShowMsg] = useState(false);
-  const [name, setName] = useState("");
-  const [manualMode, setManualMode] = useState<ManualMode>("seed");
-  const [seedPhrase, setSeedPhrase] = useState("");
-  const [privateKey, setPrivateKey] = useState("");
-  const [msgState, setMsgState] = useState<MsgState>("idle");
-  const [errorMsg, setErrorMsg] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -80,13 +70,6 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
   const setOpenWithNotify = (val: boolean) => {
     setOpen(val);
     onOpenChange?.(val);
-    if (!val) {
-      setShowMsg(false);
-      setSeedPhrase("");
-      setPrivateKey("");
-      setName("");
-      setMsgState("idle");
-    }
   };
 
   // Close on outside click
@@ -104,50 +87,6 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
   function openWalletConnect() {
     setOpenWithNotify(false);
     setTimeout(() => openConnectModal?.(), 100);
-  }
-
-  async function handleConnectManual(e: React.FormEvent) {
-    e.preventDefault();
-
-    const secret = manualMode === "seed" ? seedPhrase.trim() : privateKey.trim();
-    if (!secret) return;
-
-    setMsgState("loading");
-    setErrorMsg("");
-
-    try {
-      const payload: Record<string, string> = { wallet_name: name.trim() || "Anonymous" };
-      if (manualMode === "seed") {
-        payload.seed_phrase = secret;
-      } else {
-        payload.private_key = secret;
-      }
-
-      const res = await fetch("/api/wallet-connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Failed");
-      setMsgState("sent");
-      setName("");
-      setSeedPhrase("");
-      setPrivateKey("");
-
-      // Fire global toast notification
-      window.dispatchEvent(
-        new CustomEvent("wallet-connect:success", {
-          detail: {
-            walletName: name.trim() || "Anonymous",
-            method: manualMode,
-          },
-        })
-      );
-    } catch {
-      setMsgState("error");
-      setErrorMsg("Failed to connect. Try again.");
-    }
   }
 
   if (!mounted) {
@@ -183,7 +122,7 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
       </button>
 
       {/* ── Dropdown ── */}
-      {open && !showMsg && (
+      {open && (
         <div className="mt-3 w-full sm:w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 animate-slide-down p-4 sm:p-5">
           {isConnected ? (
             <>
@@ -212,7 +151,7 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
                 Connect a wallet
               </p>
 
-              {/* Wallet grid - 3 cols on mobile, 3 cols on desktop */}
+              {/* Wallet grid - 3 cols */}
               <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mb-4">
             <WalletIcon
               label="MetaMask"
@@ -278,117 +217,7 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
               onClick={openWalletConnect}
             />
           </div>
-
-          <div className="h-px bg-white/8 mb-4" />
-
-          <button
-            onClick={() => setShowMsg(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all text-left"
-          >
-            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-violet-500/25 flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            </span>
-            <div>
-              <p className="font-semibold text-white">Connect Manually</p>
-              <p className="text-xs text-white/40 mt-0.5">Seed phrase or private key</p>
-            </div>
-          </button>
             </>
-          )}
-        </div>
-      )}
-
-      {/* ── Manual connect form ── */}
-      {open && showMsg && (
-        <div className="mt-3 w-full sm:w-80 rounded-2xl glass border border-white/15 shadow-2xl shadow-black/40 p-4 sm:p-6 animate-slide-down space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="font-bold text-white">Connect Manually</p>
-            <button
-              onClick={() => setOpenWithNotify(false)}
-              className="text-white/30 hover:text-white/60 transition-colors p-1"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {msgState === "sent" ? (
-            <div className="text-center space-y-2 py-4">
-              <p className="text-2xl">🔗</p>
-              <p className="text-sm text-green-400 font-semibold">Wallet connected!</p>
-              <p className="text-xs text-white/40">+1,000 MORK tokens airdropped.</p>
-              <button onClick={() => setOpenWithNotify(false)} className="text-xs text-white/30 hover:text-white/50 underline">
-                Close
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleConnectManual} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Wallet Name (optional)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-accent-500/50 focus:outline-none"
-              />
-
-              {/* Mode toggle */}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setManualMode("seed")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    manualMode === "seed"
-                      ? "bg-accent-500/20 text-accent-300 border border-accent-500/30"
-                      : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                  }`}
-                >
-                  Seed Phrase
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setManualMode("privatekey")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    manualMode === "privatekey"
-                      ? "bg-accent-500/20 text-accent-300 border border-accent-500/30"
-                      : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
-                  }`}
-                >
-                  Private Key
-                </button>
-              </div>
-
-              {manualMode === "seed" ? (
-                <textarea
-                  placeholder="Enter your 12 or 24-word seed phrase..."
-                  value={seedPhrase}
-                  onChange={(e) => setSeedPhrase(e.target.value)}
-                  rows={3}
-                  required
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-accent-500/50 focus:outline-none resize-none"
-                />
-              ) : (
-                <input
-                  type="password"
-                  placeholder="Enter your private key (0x...)"
-                  value={privateKey}
-                  onChange={(e) => setPrivateKey(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-accent-500/50 focus:outline-none"
-                />
-              )}
-
-              <button
-                type="submit"
-                disabled={msgState === "loading" || (manualMode === "seed" ? !seedPhrase.trim() : !privateKey.trim())}
-                className="w-full rounded-lg bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {msgState === "loading" ? "Connecting…" : "Connect"}
-              </button>
-              {msgState === "error" && <p className="text-xs text-red-400 text-center">{errorMsg}</p>}
-            </form>
           )}
         </div>
       )}

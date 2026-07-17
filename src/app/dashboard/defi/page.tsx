@@ -1,6 +1,6 @@
 // /dashboard/defi — DeFi opportunities
 
-const MOCK_DEFI = [
+const DEFI_OPPORTUNITIES = [
   {
     id: "uniswap",
     name: "Uniswap V3",
@@ -62,8 +62,8 @@ const RISK_BADGE: Record<"low" | "medium" | "high", string> = {
 };
 
 export default function DeFiPage() {
-  const evmOpps = MOCK_DEFI.filter((d) => d.chain === "EVM");
-  const solanaOpps = MOCK_DEFI.filter((d) => d.chain === "Solana");
+  const evmOpps = DEFI_OPPORTUNITIES.filter((d) => d.chain === "EVM");
+  const solanaOpps = DEFI_OPPORTUNITIES.filter((d) => d.chain === "Solana");
 
   return (
     <div className="max-w-4xl space-y-10 animate-fade-up">
@@ -86,7 +86,7 @@ function DefiGroup({
   items,
 }: {
   title: string;
-  items: typeof MOCK_DEFI;
+  items: typeof DEFI_OPPORTUNITIES;
 }) {
   return (
     <section className="space-y-4">

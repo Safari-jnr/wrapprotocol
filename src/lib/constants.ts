@@ -2,7 +2,7 @@
 // This is the SINGLE source of truth for all chain configs, payment tokens,
 // pricing, and utility functions. chainConfig.ts references this file.
 
-export const PROJECT_NAME = "Mork Airdrop";
+export const PROJECT_NAME = "ExploreDapps";
 export const TOKEN_SYMBOL = "MORK";
 export const TOKEN_DECIMALS = 18;
 

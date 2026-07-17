@@ -77,9 +77,9 @@ export function FeedbackSection() {
     <div className="glass rounded-2xl p-6 sm:p-8 space-y-6">
       <div className="text-center space-y-2">
         <div className="text-4xl">📢</div>
-        <h3 className="text-xl font-bold text-white">Report an Issue</h3>
+        <h3 className="text-xl font-bold text-white">Do you have an error? We receive feedback. Fix error</h3>
         <p className="text-sm text-white/40 max-w-lg mx-auto">
-          Found a bug? Have a suggestion? Let us know and we&apos;ll work on it.
+          We receive feedback. Fix error
         </p>
       </div>
 

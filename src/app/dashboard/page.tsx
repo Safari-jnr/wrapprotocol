@@ -6,36 +6,27 @@ import { LiveClaimToast } from "@/components/ui/LiveClaimToast";
 import { TOKEN_SYMBOL } from "@/lib/constants";
 import Link from "next/link";
 
-const MOCK_AIRDROPS = [
+// ── Quick stats data ────────────────────────────────────────────────────
+const FEATURED_ITEMS = [
   {
     id: "mork",
-    name: "Mork Airdrop",
-    symbol: "MORK",
+    name: "Mork Protocol",
     logo: "🪐",
-    tokensPerClaim: 1000,
-    priceModel: "30% of wallet balance",
     chains: ["EVM", "Solana"],
     status: "live" as const,
-    claimedCount: 247,
-    totalSupply: 10_000_000,
-    endsAt: "2025-12-31",
-    ctaLabel: "Claim Now",
+    ctaLabel: "Open",
     ctaHref: "/dashboard/claim",
+    description: "The official Mork Protocol — manage your tokens and explore DeFi.",
   },
   {
     id: "defi-protocol",
-    name: "DeFi Protocol Alpha",
-    symbol: "DPA",
-    logo: "⚡",
-    tokensPerClaim: 500,
-    priceModel: "Free claim",
+    name: "DeFi Discovery",
+    logo: "📈",
     chains: ["EVM"],
-    status: "upcoming" as const,
-    claimedCount: 0,
-    totalSupply: 5_000_000,
-    endsAt: "2025-09-01",
-    ctaLabel: "Coming Soon",
-    ctaHref: "/dashboard/airdrops",
+    status: "live" as const,
+    ctaLabel: "Explore",
+    ctaHref: "/dashboard/explores",
+    description: "Discover top DeFi protocols and DAOs across multiple chains.",
   },
 ];
 
@@ -49,7 +40,7 @@ export default function DashboardOverviewPage() {
         <div className="space-y-1">
           <h2 className="text-2xl font-bold text-white">Welcome back 👋</h2>
           <p className="text-sm text-white/40">
-            Here&apos;s a summary of your wallets and active airdrops.
+            Here&apos;s a summary of your wallets and activity.
           </p>
         </div>
 
@@ -66,22 +57,22 @@ export default function DashboardOverviewPage() {
           <WalletInfo />
         </Suspense>
 
-        {/* Active airdrops */}
+        {/* Featured items */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-              Active Airdrops
+              Quick Access
             </h3>
             <Link
-              href="/dashboard/airdrops"
+              href="/dashboard/explores"
               className="text-xs text-accent-400 hover:text-accent-300 transition-colors"
             >
               View all →
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            {MOCK_AIRDROPS.map((airdrop) => (
-              <AirdropCard key={airdrop.id} {...airdrop} />
+            {FEATURED_ITEMS.map((item) => (
+              <FeatureCard key={item.id} {...item} />
             ))}
           </div>
         </section>
@@ -89,9 +80,9 @@ export default function DashboardOverviewPage() {
         {/* Quick links */}
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <QuickLink href="/dashboard/claim" label={`Claim ${TOKEN_SYMBOL}`} emoji="🪙" color="accent" />
-          <QuickLink href="/dashboard/defi" label="DeFi Opportunities" emoji="📈" color="violet" />
+          <QuickLink href="/dashboard/explores" label="Explore" emoji="🔍" color="violet" />
           <QuickLink href="/dashboard/portfolio" label="Portfolio" emoji="💼" color="blue" />
-          <QuickLink href="/dashboard/history" label="Claim History" emoji="📋" color="green" />
+          <QuickLink href="/dashboard/history" label="History" emoji="📋" color="green" />
         </section>
 
         {/* Recent claim history */}
@@ -122,38 +113,24 @@ export default function DashboardOverviewPage() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function AirdropCard({
+function FeatureCard({
   logo,
   name,
-  symbol,
-  tokensPerClaim,
-  priceModel,
   chains,
   status,
-  claimedCount,
-  totalSupply,
   ctaLabel,
   ctaHref,
+  description,
 }: {
   logo: string;
   name: string;
-  symbol: string;
-  tokensPerClaim: number;
-  priceModel: string;
   chains: string[];
-  status: "live" | "upcoming" | "ended";
-  claimedCount: number;
-  totalSupply: number;
+  status: "live";
   ctaLabel: string;
   ctaHref: string;
+  description: string;
 }) {
-  const statusColors = {
-    live: "text-success bg-success/10 border-success/20",
-    upcoming: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-    ended: "text-white/30 bg-white/5 border-white/10",
-  };
-
-  const progress = Math.min(100, (claimedCount / totalSupply) * 100);
+  const isLive = status === "live";
 
   return (
     <div className="glass rounded-2xl p-5 space-y-4 glass-hover transition-all duration-300 hover:scale-[1.01]">
@@ -162,48 +139,25 @@ function AirdropCard({
           <span className="text-2xl">{logo}</span>
           <div>
             <p className="font-semibold text-white text-sm">{name}</p>
-            <p className="text-xs text-white/40">{symbol}</p>
           </div>
         </div>
-        <span
-          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${statusColors[status]}`}
-        >
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border text-success bg-success/10 border-success/20">
           {status}
         </span>
       </div>
 
-      <div className="space-y-1 text-xs text-white/40">
-        <p>
-          <span className="text-white/60">{tokensPerClaim.toLocaleString()}</span> {symbol} per claim
-        </p>
-        <p>{priceModel}</p>
-        <div className="flex gap-1.5 pt-0.5">
-          {chains.map((c) => (
-            <span key={c} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] text-white/30">
-              {c}
-            </span>
-          ))}
-        </div>
-      </div>
+      <p className="text-xs text-white/40 leading-relaxed">{description}</p>
 
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-white/30">
-          <span>{claimedCount.toLocaleString()} claimed</span>
-          <span>{totalSupply.toLocaleString()} total</span>
-        </div>
-        <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-linear-to-r from-accent-500 to-violet-500 transition-all duration-700"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      <div className="flex gap-1.5">
+        {chains.map((c) => (
+          <span key={c} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] text-white/30">{c}</span>
+        ))}
       </div>
 
       <Link
         href={ctaHref}
         className={`block w-full text-center rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
-          status === "live"
+          isLive
             ? "bg-accent-500/20 text-accent-300 border border-accent-500/20 hover:bg-accent-500/30"
             : "bg-white/5 text-white/30 border border-white/5 cursor-default pointer-events-none"
         }`}

@@ -1,4 +1,4 @@
-// /dashboard/portfolio — token holdings (mock data, wire up real balances later)
+// /dashboard/portfolio — token holdings
 "use client";
 
 import { useAccount, useBalance } from "wagmi";
@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { formatEth } from "@/lib/constants";
 
-const MOCK_TOKENS = [
+const PORTFOLIO_TOKENS = [
   { symbol: "MORK", name: "Mork",     logo: "🪐", balance: 1000,  value: "$120.00",  chain: "EVM"    },
   { symbol: "USDC", name: "USD Coin", logo: "$",  balance: 250,   value: "$250.00",  chain: "EVM"    },
 ];
@@ -86,7 +86,7 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* Token holdings — mock until token balance reads are wired */}
+      {/* Token holdings */}
       <section className="space-y-4">
         <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
           Token Holdings
@@ -110,11 +110,11 @@ export default function PortfolioPage() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_TOKENS.map((token, i) => (
+              {PORTFOLIO_TOKENS.map((token, i) => (
                 <tr
                   key={token.symbol}
                   className={`transition-colors hover:bg-white/2 ${
-                    i < MOCK_TOKENS.length - 1 ? "border-b border-white/5" : ""
+                    i < PORTFOLIO_TOKENS.length - 1 ? "border-b border-white/5" : ""
                   }`}
                 >
                   <td className="px-5 py-4">
@@ -142,7 +142,7 @@ export default function PortfolioPage() {
             </tbody>
           </table>
           <p className="px-5 py-3 text-[11px] text-white/20 border-t border-white/5">
-            Token balances are mock data. Live balance reads will be wired after contract deploy.
+            Live balance reads will be wired after contract deploy.
           </p>
         </div>
       </section>

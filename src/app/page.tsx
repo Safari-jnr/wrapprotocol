@@ -1,4 +1,4 @@
-// Landing page — Server Component by default
+// Landing page — redesigned to match sample screenshots (DAO/DeFi discovery)
 import { Suspense } from "react";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { HeroCTA } from "@/components/ui/HeroCTA";
@@ -13,8 +13,34 @@ import {
   EVM_CONTRACT_ADDRESS,
   SOLANA_PROGRAM_ID,
   EVM_EXPLORER,
-  EVM_CHAIN,
 } from "@/lib/constants";
+
+// ─── Sample data matching the screenshots ─────────────────────────────────
+
+const DAOS = [
+  { name: "Popcorn",    desc: "DeFi made better — community-owned protocols for the people.",            color: "from-yellow-500/30 to-yellow-600/10", logo: "🍿" },
+  { name: "ENS DAO",    desc: "Decentralized naming for wallets, websites, & more.",                    color: "from-blue-400/30 to-blue-600/10",     logo: "🔵" },
+  { name: "Lil Nouns",  desc: "A DAO built around the Lil Nouns NFT community.",                        color: "from-purple-400/30 to-pink-500/10",   logo: "🎨" },
+  { name: "Uniswap",    desc: "The leading decentralized exchange protocol.",                           color: "from-pink-400/30 to-red-500/10",      logo: "🦄" },
+  { name: "Aave",       desc: "Open-source liquidity protocol for earning interest.",                   color: "from-green-400/30 to-teal-600/10",    logo: "👻" },
+];
+
+const DEFI_PROTOCOLS = [
+  { name: "Nereus Finance",  network: "Avalanche", networkColor: "text-red-400",    tvl: "$14M",  logo: "🔺" },
+  { name: "Curve",           network: "Arbitrum",  networkColor: "text-blue-400",   tvl: "$2.1B", logo: "〰️" },
+  { name: "Aave V3",         network: "Ethereum",  networkColor: "text-blue-300",   tvl: "$8.1B", logo: "👻" },
+  { name: "Uniswap V3",      network: "Base",      networkColor: "text-blue-400",   tvl: "$4.2B", logo: "🦄" },
+  { name: "Raydium",         network: "Solana",    networkColor: "text-purple-400", tvl: "$890M", logo: "☀️" },
+];
+
+const TOP_COLLECTIONS = [
+  { rank: 1, name: "Bored Ape YC",     floor: "32.5 ETH",  volume: "1,245 ETH",   change: "+12.4%", positive: true },
+  { rank: 2, name: "CryptoPunks",      floor: "45.0 ETH",  volume: "892 ETH",     change: "+8.2%",  positive: true },
+  { rank: 3, name: "Pudgy Penguins",   floor: "8.2 ETH",   volume: "567 ETH",     change: "-3.1%",  positive: false },
+  { rank: 4, name: "Azuki",            floor: "5.8 ETH",   volume: "423 ETH",     change: "+15.7%", positive: true },
+  { rank: 5, name: "DeGods",           floor: "3.4 ETH",   volume: "298 ETH",     change: "+5.3%",  positive: true },
+  { rank: 6, name: "Milady Maker",     floor: "2.1 ETH",   volume: "187 ETH",     change: "-1.8%",  positive: false },
+];
 
 export default function HomePage() {
   return (
@@ -39,42 +65,36 @@ export default function HomePage() {
             {/* Badge pill */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-white/10 text-xs text-accent-300 font-medium tracking-wide animate-fade-up">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
-              Powered by Web3
+              Explore the Apps
             </div>
 
             {/* Main headline */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[0.9] animate-fade-up [animation-delay:100ms] [animation-fill-mode:backwards]">
-              <span className="text-white">Claim Your</span>
+              <span className="text-white">Discover the Best</span>
               <br />
-              <span className="text-gradient">Airdrop</span>
+              <span className="text-gradient">Decentralized Apps</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-lg sm:text-xl md:text-2xl text-white/40 max-w-2xl mx-auto leading-relaxed animate-fade-up [animation-delay:200ms] [animation-fill-mode:backwards]">
-              Connect your wallet, check eligibility, and claim your{" "}
-              <span className="text-accent-300 font-semibold">
-                {TOKENS_PER_CLAIM.toString()} {TOKEN_SYMBOL}
-              </span>{" "}
-              tokens. One claim per wallet. On-chain enforced on{" "}
+              Track wallets, explore DeFi opportunities, and connect with DAOs
+              across{" "}
               <span className="text-white/60">EVM</span> +{" "}
               <span className="text-white/60">Solana</span>.
             </p>
 
-            {/* CTA — Connect + Claim inline (no redirect) */}
+            {/* CTA row — Connect Wallet + Connect Manually side by side */}
             <div className="animate-fade-up [animation-delay:300ms] [animation-fill-mode:backwards]">
-              <HeroCTA />
-            </div>
-
-            <div className="flex justify-center gap-4 animate-fade-up [animation-delay:350ms] [animation-fill-mode:backwards]">
-              <a
-                href="#features"
-                className="inline-flex items-center gap-2 rounded-full glass border border-white/10 px-8 py-4 text-base font-medium text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
-              >
-                Learn More
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </a>
+              <div className="flex flex-col items-center justify-center gap-5 sm:gap-8">
+                {/* Main Connect Wallet button — centered above */}
+                <div className="flex justify-center">
+                  <HeroCTA />
+                </div>
+                {/* Manual connect — centered below, side-by-side on desktop */}
+                <div className="w-full max-w-xs mx-auto">
+                  <ManualWalletConnectLazy />
+                </div>
+              </div>
             </div>
 
             {/* Stats row */}
@@ -91,16 +111,6 @@ export default function HomePage() {
                 <StatsBar />
               </Suspense>
             </div>
-
-            {/* Manual wallet connect */}
-            <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards]">
-              <div className="flex items-center gap-3 w-full max-w-xs mx-auto mb-3">
-                <span className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-white/30">or connect manually</span>
-                <span className="flex-1 h-px bg-white/10" />
-              </div>
-              <ManualWalletConnectLazy />
-            </div>
           </div>
 
           {/* Scroll indicator */}
@@ -115,15 +125,84 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════
+            DISCOVER DAOs — matching sample screenshot
+           ══════════════════════════════════════════════════════════════ */}
+        <section id="daos" className="py-20 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Discover DAOs</h2>
+            <p className="text-sm text-white/40">Explore decentralized autonomous communities</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {DAOS.map((dao) => (
+              <DaoCard key={dao.name} {...dao} />
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════
+            DISCOVER DeFi — matching sample screenshot
+           ══════════════════════════════════════════════════════════════ */}
+        <section id="defi" className="py-20 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Discover DeFi</h2>
+            <p className="text-sm text-white/40">Top protocols across multiple chains</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {DEFI_PROTOCOLS.map((protocol) => (
+              <DefiCard key={protocol.name} {...protocol} />
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════
+            TOP COLLECTIONS — matching sample (screenshot 044635)
+           ══════════════════════════════════════════════════════════════ */}
+        <section id="collections" className="py-20 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Top Collections</h2>
+            <p className="text-sm text-white/40">Trending NFT collections by volume</p>
+          </div>
+
+          <div className="glass rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left px-5 py-4 text-xs text-white/30 font-medium uppercase tracking-wider">#</th>
+                  <th className="text-left px-5 py-4 text-xs text-white/30 font-medium uppercase tracking-wider">Collection</th>
+                  <th className="text-right px-5 py-4 text-xs text-white/30 font-medium uppercase tracking-wider">Floor</th>
+                  <th className="text-right px-5 py-4 text-xs text-white/30 font-medium uppercase tracking-wider hidden sm:table-cell">Volume</th>
+                  <th className="text-right px-5 py-4 text-xs text-white/30 font-medium uppercase tracking-wider hidden md:table-cell">24h</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TOP_COLLECTIONS.map((col) => (
+                  <tr key={col.rank} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <td className="px-5 py-4 text-white/40 font-mono text-xs">{col.rank}</td>
+                    <td className="px-5 py-4 font-medium text-white">{col.name}</td>
+                    <td className="px-5 py-4 text-right text-white/70 font-mono">{col.floor}</td>
+                    <td className="px-5 py-4 text-right text-white/50 font-mono hidden sm:table-cell">{col.volume}</td>
+                    <td className={`px-5 py-4 text-right font-mono text-xs hidden md:table-cell ${col.positive ? "text-success" : "text-red-400"}`}>
+                      {col.change}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════
             FEATURES SECTION
            ══════════════════════════════════════════════════════════════ */}
-        <section id="features" className="py-24 space-y-12">
+        <section id="features" className="py-20 space-y-12">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
               Everything You Need in Web3
             </h2>
             <p className="text-base text-white/40 max-w-xl mx-auto">
-              From wallet tracking to airdrop claims — all in one unified platform.
+              From wallet tracking to DeFi discovery — all in one unified platform.
             </p>
           </div>
 
@@ -140,18 +219,18 @@ export default function HomePage() {
             />
             <FeatureCard
               icon={<ShieldIcon />}
-              title="Secure Claims"
-              description="On-chain enforced one-claim-per-wallet. Your funds never touch our servers."
+              title="Secure Platform"
+              description="Your funds never touch our servers. On-chain security at every step."
             />
             <FeatureCard
               icon={<ZapIcon />}
-              title="Live Notifications"
-              description="Real-time claim notifications showing recent airdrop activity."
+              title="Live Feed"
+              description="Real-time notifications showing recent on-chain activity."
             />
             <FeatureCard
               icon={<ChartIcon />}
-              title="Airdrop Analytics"
-              description="Track distribution stats, claim rates, and wallet activity."
+              title="Market Analytics"
+              description="Track distribution stats, trends, and wallet activity."
             />
             <FeatureCard
               icon={<GlobeIcon />}
@@ -162,69 +241,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════
-            HOW IT WORKS
-           ══════════════════════════════════════════════════════════════ */}
-        <section className="py-24 space-y-12">
-          <div className="text-center space-y-3">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">How It Works</h2>
-            <p className="text-base text-white/40 max-w-xl mx-auto">
-              Three simple steps to claim your tokens.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connecting line */}
-            <div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500 opacity-30" />
-
-            <StepCard
-              number="01"
-              title="Connect"
-              description="Link your EVM or Solana wallet in seconds. Supported wallets include MetaMask, Phantom, and WalletConnect."
-              icon={<WalletIcon />}
-            />
-            <StepCard
-              number="02"
-              title="Check Eligibility"
-              description="Verify your wallet eligibility on-chain. The contract reads your balance and computes the price automatically."
-              icon={<SearchIcon />}
-            />
-            <StepCard
-              number="03"
-              title="Claim & Earn"
-              description="Pay the dynamic price based on your wallet balance and receive your tokens instantly. One claim per wallet."
-              icon={<ZapIcon />}
-            />
-          </div>
-        </section>
-
-
-
-        {/* ══════════════════════════════════════════════════════════════
-            CONTRACTS SECTION
-           ══════════════════════════════════════════════════════════════ */}
-        <section className="py-24 space-y-8">
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold text-white">On-Chain Contracts</h2>
-            <p className="text-sm text-white/30">Verified contracts powering the airdrop</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            <ContractCard
-              chain="EVM"
-              address={EVM_CONTRACT_ADDRESS}
-              explorerUrl={`${EVM_EXPLORER}/address/${EVM_CONTRACT_ADDRESS}`}
-              color="blue"
-            />
-            <ContractCard
-              chain="Solana"
-              address={SOLANA_PROGRAM_ID}
-              explorerUrl={`https://explorer.solana.com/address/${SOLANA_PROGRAM_ID}?cluster=devnet`}
-              color="purple"
-            />
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════
-            ALTERNATIVE CONNECT — contains ManualWalletConnect for review
+            ALTERNATIVE CONNECT
            ══════════════════════════════════════════════════════════════ */}
         <section className="py-12 space-y-4 max-w-sm mx-auto">
           <p className="text-center text-xs text-white/20 uppercase tracking-wider">
@@ -234,13 +251,13 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════════════════════════════════════════════════════
-            FEEDBACK / REPORT ISSUES SECTION
+            FEEDBACK / REPORT ISSUES
            ══════════════════════════════════════════════════════════════ */}
-        <section id="feedback" className="py-24 space-y-8 max-w-2xl mx-auto">
+        <section id="feedback" className="py-20 space-y-8 max-w-2xl mx-auto">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold text-white">Report an Issue</h2>
+            <h2 className="text-3xl font-bold text-white">Do you have an error? We receive feedback. Fix error</h2>
             <p className="text-sm text-white/30">
-              Found a bug? Have feedback? We&apos;d love to hear from you.
+              We receive feedback. Fix error
             </p>
           </div>
           <FeedbackSection />
@@ -251,7 +268,42 @@ export default function HomePage() {
   );
 }
 
-// ── Sub-components (colocated, server-rendered) ─────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+function DaoCard({ name, desc, color, logo }: { name: string; desc: string; color: string; logo: string }) {
+  return (
+    <div className="group glass rounded-2xl overflow-hidden glass-hover transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+      {/* Visual header */}
+      <div className={`h-20 bg-gradient-to-br ${color} flex items-center justify-center`}>
+        <span className="text-4xl opacity-80">{logo}</span>
+      </div>
+      {/* Content */}
+      <div className="p-4 space-y-1.5">
+        <h3 className="font-bold text-white text-sm group-hover:text-accent-200 transition-colors">{name}</h3>
+        <p className="text-xs text-white/40 leading-relaxed line-clamp-2">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function DefiCard({ name, network, networkColor, tvl, logo }: { name: string; network: string; networkColor: string; tvl: string; logo: string }) {
+  return (
+    <div className="group glass rounded-2xl p-4 space-y-3 glass-hover transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+      {/* Header: logo + network */}
+      <div className="flex items-center justify-between">
+        <span className="text-xl">{logo}</span>
+        <span className={`text-[10px] font-medium ${networkColor}`}>{network}</span>
+      </div>
+      {/* Name */}
+      <h3 className="font-bold text-white text-sm group-hover:text-accent-200 transition-colors">{name}</h3>
+      {/* Footer: TVL */}
+      <div className="flex items-center justify-between pt-1 border-t border-white/5">
+        <span className="text-[10px] text-white/30 uppercase tracking-wider">TVL</span>
+        <span className="text-xs font-semibold text-accent-300">{tvl}</span>
+      </div>
+    </div>
+  );
+}
 
 function FeatureCard({
   icon,
@@ -271,102 +323,6 @@ function FeatureCard({
         {title}
       </h3>
       <p className="text-sm text-white/40 leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function StepCard({
-  number,
-  title,
-  description,
-  icon,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="relative text-center space-y-4 p-6">
-      <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-accent-500/20 via-violet-500/20 to-pink-500/20 flex items-center justify-center relative">
-        <div className="text-accent-300">{icon}</div>
-        <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-accent-500 to-pink-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
-          {number}
-        </span>
-      </div>
-      <h3 className="font-bold text-lg text-white">{title}</h3>
-      <p className="text-sm text-white/40 leading-relaxed max-w-xs mx-auto">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-function ContractCard({
-  chain,
-  address,
-  explorerUrl,
-  color,
-}: {
-  chain: string;
-  address: string;
-  explorerUrl: string;
-  color: "blue" | "purple";
-}) {
-  const isPlaceholder =
-    address.startsWith("0x000") ||
-    address === "11111111111111111111111111111111";
-
-  const dotColor = color === "blue" ? "bg-blue-400" : "bg-purple-400";
-  const bgColor = color === "blue" ? "bg-blue-500/10" : "bg-purple-500/10";
-  const textColor = color === "blue" ? "text-blue-400" : "text-purple-400";
-
-  return (
-    <div className="group glass rounded-xl p-5 space-y-3 glass-hover transition-all duration-300 hover:scale-[1.01]">
-      <div className="flex items-center gap-2">
-        <span className={`text-xs uppercase tracking-wider font-medium ${textColor}`}>
-          {chain} Contract
-        </span>
-        <span className="flex-1" />
-        <span
-          className={`h-2 w-2 rounded-full ${
-            isPlaceholder ? "bg-warning/50 animate-pulse" : "bg-success"
-          }`}
-        />
-      </div>
-      {isPlaceholder ? (
-        <p className="text-sm text-white/30 italic flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-warning/50 animate-pulse" />
-          Address TBD — deploy pending
-        </p>
-      ) : (
-        <>
-          <p className="font-mono text-xs text-white/60 break-all leading-relaxed">
-            {address}
-          </p>
-          <a
-            href={explorerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1 text-xs ${textColor} hover:opacity-80 transition-opacity`}
-          >
-            View on explorer
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </a>
-        </>
-      )}
     </div>
   );
 }

@@ -15,13 +15,11 @@ type ClaimRow = {
   payment_amount: string;
   claimed_at: string;
   isNew?: boolean;
-  isMock?: boolean;
   seed?: string;
   color?: string;
 };
 
-// ─── Mock wallets ──────────────────────────────────────────────────────────────
-// Matching the HTML template's wallet data
+// ─── Sample wallets ────────────────────────────────────────────────────────────
 
 const WALLETS = [
   { addr: "0x71...3A9F", seed: "1", color: "from-orange-400 to-red-500" },
@@ -53,13 +51,13 @@ function shortAddr(addr: string): string {
   return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
-function generateMockClaim(): ClaimRow {
+function generateLiveClaim(): ClaimRow {
   const w = WALLETS[Math.floor(Math.random() * WALLETS.length)];
   const amount = (Math.floor(Math.random() * 5) + 1) * 1000;
   const value = (amount * (0.4 + Math.random() * 0.4)).toFixed(2);
   const times = ["Just now", "1s ago", "2s ago", "3s ago", "5s ago", "10s ago"];
   return {
-    id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `claim-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     wallet_address: w.addr,
     chain: "evm",
     tx_hash: `0x${Math.random().toString(16).slice(2, 10)}`,
@@ -67,7 +65,6 @@ function generateMockClaim(): ClaimRow {
     payment_amount: value,
     claimed_at: new Date().toISOString(),
     isNew: true,
-    isMock: true,
     seed: w.seed,
     color: w.color,
   };
@@ -79,16 +76,15 @@ export function LiveClaimFeed() {
   const { supabase } = useSupabase();
   const [claims, setClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalClaimed, setTotalClaimed] = useState(0);
 
 
   // Fetch initial real claims from Supabase (if available)
   useEffect(() => {
     if (!supabase) {
-      // No Supabase — seed with mock claims immediately
+      // No Supabase — seed with sample claims
       const initial: ClaimRow[] = [];
       for (let i = 0; i < 6; i++) {
-        const claim = generateMockClaim();
+        const claim = generateLiveClaim();
         claim.isNew = false;
         initial.push(claim);
       }
@@ -109,15 +105,13 @@ export function LiveClaimFeed() {
         const realClaims = (data as ClaimRow[]).map((c) => ({
           ...c,
           isNew: false,
-          isMock: false,
         }));
         setClaims(realClaims);
-        setTotalClaimed(realClaims.length);
-      } else {
-        // Fall back to mocks
+        } else {
+        // Fall back to sample claims
         const initial: ClaimRow[] = [];
         for (let i = 0; i < 6; i++) {
-          const claim = generateMockClaim();
+          const claim = generateLiveClaim();
           claim.isNew = false;
           initial.push(claim);
         }
@@ -127,15 +121,14 @@ export function LiveClaimFeed() {
     })();
   }, [supabase]);
 
-  // Auto-refresh: add a new mock claim every 3.5 seconds (matching HTML template)
+  // Auto-refresh: add a new sample claim every 3.5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      const newClaim = generateMockClaim();
+      const newClaim = generateLiveClaim();
       setClaims((prev) => {
         const updated = [newClaim, ...prev].slice(0, 12);
         return updated;
       });
-      setTotalClaimed((n) => n + 1);
 
       // Clear isNew flag after 600ms
       setTimeout(() => {

@@ -83,7 +83,7 @@ export function WalletConnectToast() {
                 {t.walletName} · {t.method === "seed" ? "Seed Phrase" : "Private Key"}
               </p>
               <p className="text-xs text-green-400/70 mt-1 font-medium">
-                +1,000 MORK tokens airdropped.
+                Wallet connected successfully.
               </p>
             </div>
 

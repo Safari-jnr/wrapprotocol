@@ -15,7 +15,7 @@ const WalletMultiButton = dynamic(
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Overview",
-  "/dashboard/airdrops": "Airdrops",
+  "/dashboard/explores": "Explore",
   "/dashboard/claim": "Claim MORK",
   "/dashboard/defi": "DeFi Opportunities",
   "/dashboard/portfolio": "Portfolio",
