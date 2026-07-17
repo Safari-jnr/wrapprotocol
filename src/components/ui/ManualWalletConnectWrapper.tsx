@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 export const ManualWalletConnectLazy = dynamic(
   () =>
-    import("@/components/ui/ManualWalletConnect").then((m) => ({
+    import("./ManualWalletConnect").then((m) => ({
       default: m.ManualWalletConnect,
     })),
   { ssr: false }
