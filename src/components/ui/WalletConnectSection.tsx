@@ -1,30 +1,14 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import dynamic from "next/dynamic";
 import { EmailSignIn } from "./EmailSignIn";
-
-// WalletMultiButton reads Solana context — must be client-only to avoid SSR errors
-const WalletMultiButton = dynamic(
-  () =>
-    import("@solana/wallet-adapter-react-ui").then(
-      (m) => m.WalletMultiButton
-    ),
-  { ssr: false }
-);
 
 export function WalletConnectSection() {
   return (
     <div className="flex flex-col items-center gap-3 pt-4">
-      {/* Wallet buttons row */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <div className="animate-scale-in">
-          <ConnectButton label="Connect EVM Wallet" />
-        </div>
-        <span className="text-white/15 text-xs hidden sm:block">or</span>
-        <div className="animate-scale-in [animation-delay:100ms] [animation-fill-mode:backwards]">
-          <WalletMultiButton />
-        </div>
+      {/* EVM Wallet button */}
+      <div className="animate-scale-in">
+        <ConnectButton label="Connect EVM Wallet" />
       </div>
 
       {/* OR divider */}

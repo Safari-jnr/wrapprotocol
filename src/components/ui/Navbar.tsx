@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useDisconnect } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { PROJECT_NAME } from "@/lib/constants";
 import { usePathname } from "next/navigation";
 import { WalletModal } from "./WalletModal";
@@ -12,24 +12,18 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [walletConnected, setWalletConnected] = useState<string | null>(null);
+  const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const pathname = usePathname();
 
-  // Force disconnect + clear localStorage so the user starts fresh
+  // Listen for wallet connection from RainbowKit
   useEffect(() => {
-    disconnect();
-    const keysToRemove = [
-      "wagmi.store", "wagmi.cache", "walletconnect",
-      "WALLET_CONNECT_DEEPLINK_CHOICE", "reown.appkit",
-      "cbw", "coinbaseWallet", "-walletlink",
-    ];
-    for (const key of Object.keys(localStorage)) {
-      if (keysToRemove.some((k) => key.startsWith(k) || key.includes(k))) {
-        localStorage.removeItem(key);
-      }
+    if (address) {
+      setWalletConnected(address);
+    } else {
+      setWalletConnected(null);
     }
-    setWalletConnected(null);
-  }, [disconnect]);
+  }, [address]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -43,8 +37,8 @@ export function Navbar() {
     { href: "/#airdrop", label: "Airdrop" },
   ];
 
-  function handleConnected(address: string) {
-    setWalletConnected(address || "0x71...3A9F");
+  function handleConnected(addr: string) {
+    if (addr) setWalletConnected(addr);
   }
 
   return (
@@ -88,25 +82,23 @@ export function Navbar() {
           {/* Wallet section */}
           <div className="flex items-center gap-2 sm:gap-3">
             {walletConnected ? (
-              <div className="flex items-center gap-3">
-                <div className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  +1,000 MORK
-                </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
-                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-purple-500 to-blue-600 flex items-center justify-center text-xs font-bold text-white">
-                    {walletConnected.slice(0, 2)}
-                  </div>
-                  <span className="text-sm font-medium text-white">{walletConnected}</span>
+              <button
+                onClick={() => disconnect()}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all text-xs sm:text-sm font-medium text-white/70"
+              >
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+                {walletConnected.slice(0, 6)}...{walletConnected.slice(-4)}
+                <span className="text-[10px] text-white/30 hover:text-red-400 ml-1">Disconnect</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={() => setWalletModalOpen(true)}
+                  className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-purple-600 to-blue-600 rounded-xl text-xs sm:text-sm font-semibold text-white hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300"
+                >
+                  Connect Wallet
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setWalletModalOpen(true)}
-                className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-purple-600 to-blue-600 rounded-xl text-xs sm:text-sm font-semibold text-white hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300"
-              >
-                Connect Wallet
-              </button>
             )}
 
             {/* Mobile hamburger */}

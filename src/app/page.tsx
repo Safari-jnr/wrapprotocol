@@ -60,17 +60,12 @@ export default function HomePage() {
               <span className="text-white/60">Solana</span>.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up [animation-delay:300ms] [animation-fill-mode:backwards]">
-              <a
-                href="/dashboard"
-                className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500 px-8 py-4 text-base font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-accent-500/30"
-              >
-                Claim Airdrop
-                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </a>
+            {/* CTA — Connect + Claim inline (no redirect) */}
+            <div className="animate-fade-up [animation-delay:300ms] [animation-fill-mode:backwards]">
+              <HeroCTA />
+            </div>
+
+            <div className="flex justify-center gap-4 animate-fade-up [animation-delay:350ms] [animation-fill-mode:backwards]">
               <a
                 href="#features"
                 className="inline-flex items-center gap-2 rounded-full glass border border-white/10 px-8 py-4 text-base font-medium text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
@@ -97,13 +92,8 @@ export default function HomePage() {
               </Suspense>
             </div>
 
-            {/* CTA — Connect + Claim inline (owner requirement: no redirect) */}
+            {/* Manual wallet connect */}
             <div className="pt-4 animate-fade-up [animation-delay:500ms] [animation-fill-mode:backwards]">
-              <HeroCTA />
-            </div>
-
-            {/* Manual wallet connect — visible in hero for review */}
-            <div className="pt-2 animate-fade-up [animation-delay:600ms] [animation-fill-mode:backwards]">
               <div className="flex items-center gap-3 w-full max-w-xs mx-auto mb-3">
                 <span className="flex-1 h-px bg-white/10" />
                 <span className="text-xs text-white/30">or connect manually</span>
@@ -207,36 +197,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════════════════════
-            AIRDROP CTA BANNER
-           ══════════════════════════════════════════════════════════════ */}
-        <section className="py-16">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-accent-600 via-violet-600 to-pink-600 p-8 sm:p-12 text-center space-y-6">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-              <div className="absolute bottom-0 right-0 w-48 h-48 bg-white rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
-            </div>
-            
-            <div className="relative z-10 space-y-4">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white">
-                Ready to Claim Your Airdrop?
-              </h2>
-              <p className="text-lg text-white/70 max-w-lg mx-auto">
-                Join thousands of users claiming their tokens. Connect your wallet and check eligibility now.
-              </p>
-              <a
-                href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-bold text-violet-700 hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl"
-              >
-                Get Started Now
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </section>
+
 
         {/* ══════════════════════════════════════════════════════════════
             CONTRACTS SECTION
