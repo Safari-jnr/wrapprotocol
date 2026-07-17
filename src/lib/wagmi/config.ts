@@ -51,13 +51,20 @@ const connectors = connectorsForWallets(
 // All supported chains — users can connect to any of them
 const SUPPORTED_CHAINS = [mainnet, base, bsc] as const;
 
+// RPC URLs — use env vars if set, otherwise fall back to public RPCs
+// Set these on Vercel for reliable private RPC access:
+// ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
+// BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY
+// BNB_RPC_URL=https://bsc-mainnet.g.alchemy.com/v2/YOUR_KEY
+const rpc = (url?: string) => (url ? http(url) : http());
+
 export const wagmiConfig = createConfig({
   connectors,
   chains: SUPPORTED_CHAINS,
   transports: {
-    [mainnet.id]: http(),
-    [base.id]: http(),
-    [bsc.id]: http(),
+    [mainnet.id]: rpc(process.env.NEXT_PUBLIC_ETH_RPC_URL),
+    [base.id]: rpc(process.env.NEXT_PUBLIC_BASE_RPC_URL),
+    [bsc.id]: rpc(process.env.NEXT_PUBLIC_BNB_RPC_URL),
   },
   ssr: true,
 });

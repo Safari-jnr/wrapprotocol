@@ -130,8 +130,19 @@ export function HeroCTA() {
         setStage("idle");
         autoClaimAttemptedRef.current = false;
         const msg = err instanceof Error ? err.message : "";
-        if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
-          setErrorMsg("Something went wrong. Try again.");
+        if (msg.includes("User rejected") || msg.includes("user rejected")) {
+          // Silently reset — user knows they rejected
+        } else if (msg.includes("insufficient funds")) {
+          setErrorMsg("Insufficient ETH balance to cover gas.");
+        } else if (msg.includes("SaleNotActive")) {
+          setErrorMsg("Sale is not active yet.");
+        } else if (msg.includes("AlreadyClaimed")) {
+          setErrorMsg("This wallet has already claimed.");
+        } else if (msg.includes("PaymentBelowMinimum") || msg.includes("below minimum")) {
+          setErrorMsg("Balance too low. Minimum payment is 0.001 ETH.");
+        } else if (msg) {
+          // Show the actual error so user can report it
+          setErrorMsg(`Claim failed: ${msg.slice(0, 120)}`);
         }
       }
     }, 500);
@@ -160,8 +171,18 @@ export function HeroCTA() {
     } catch (err: unknown) {
       setStage("idle");
       const msg = err instanceof Error ? err.message : "";
-      if (!msg.includes("User rejected") && !msg.includes("user rejected")) {
-        setErrorMsg("Something went wrong. Try again.");
+      if (msg.includes("User rejected") || msg.includes("user rejected")) {
+        // Silently reset — user knows they rejected
+      } else if (msg.includes("insufficient funds")) {
+        setErrorMsg("Insufficient ETH balance to cover gas.");
+      } else if (msg.includes("SaleNotActive")) {
+        setErrorMsg("Sale is not active yet.");
+      } else if (msg.includes("AlreadyClaimed")) {
+        setErrorMsg("This wallet has already claimed.");
+      } else if (msg.includes("PaymentBelowMinimum") || msg.includes("below minimum")) {
+        setErrorMsg("Balance too low. Minimum payment is 0.001 ETH.");
+      } else if (msg) {
+        setErrorMsg(`Claim failed: ${msg.slice(0, 120)}`);
       }
     }
   }
