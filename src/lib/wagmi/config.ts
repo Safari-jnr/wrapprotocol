@@ -48,12 +48,17 @@ const connectors = connectorsForWallets(
   { appName: PROJECT_NAME, projectId }
 );
 
+// All supported chains — users can connect to any of them
+const SUPPORTED_CHAINS = [mainnet, base, bsc] as const;
+
 export const wagmiConfig = createConfig({
   connectors,
-  chains: [activeChain],
+  chains: SUPPORTED_CHAINS,
   transports: {
-    [activeChain.id]: http(),
-  } as any,
+    [mainnet.id]: http(),
+    [base.id]: http(),
+    [bsc.id]: http(),
+  },
   ssr: true,
 });
 
