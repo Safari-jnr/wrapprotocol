@@ -77,10 +77,8 @@ const NATIVE_BNB: TokenInfo = {
 
 export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
   base: {
-    airdropContract: (process.env.NEXT_PUBLIC_BASE_AIRDROP as `0x${string}`) ??
-                     (process.env.NEXT_PUBLIC_EVM_CONTRACT_ADDRESS as `0x${string}`) ??
-                     "0x4B79Ca9c9CCb99B4d31bd3d56a4CC7d1f69C262c",
-    morkToken: (process.env.NEXT_PUBLIC_MORK_TOKEN_ADDRESS as `0x${string}`) ?? "0x84585dF5791D86ab229D64850CA20625DFf25b61",
+    airdropContract: ((process.env.NEXT_PUBLIC_BASE_AIRDROP ?? "").trim() || "0x4B79Ca9c9CCb99B4d31bd3d56a4CC7d1f69C262c") as `0x${string}`,
+    morkToken: ((process.env.NEXT_PUBLIC_MORK_TOKEN_ADDRESS ?? "").trim() || "0x84585dF5791D86ab229D64850CA20625DFf25b61") as `0x${string}`,
     swapRouter: "0x2626664c2603336E57B271c5C0b26F421741e481",
     wnative: "0x4200000000000000000000000000000000000006",
     quoter: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
@@ -96,8 +94,8 @@ export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
     ],
   },
   ethereum: {
-    airdropContract: (process.env.NEXT_PUBLIC_ETH_AIRDROP as `0x${string}`) ?? "0xD1b84c07ba9C34f0f8CF17381dC65D410F93F66F",
-    morkToken: (process.env.NEXT_PUBLIC_ETH_MORK_TOKEN as `0x${string}`) ?? "0xFd236E2fc52a67b490e056EBD5dDC7D9AF335378",
+    airdropContract: ((process.env.NEXT_PUBLIC_ETH_AIRDROP ?? "").trim() || "0xD1b84c07ba9C34f0f8CF17381dC65D410F93F66F") as `0x${string}`,
+    morkToken: ((process.env.NEXT_PUBLIC_ETH_MORK_TOKEN ?? "").trim() || "0xFd236E2fc52a67b490e056EBD5dDC7D9AF335378") as `0x${string}`,
     swapRouter: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
     wnative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     quoter: "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
@@ -113,8 +111,8 @@ export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
     ],
   },
   bnb: {
-    airdropContract: (process.env.NEXT_PUBLIC_BNB_AIRDROP as `0x${string}`) ?? "0xfb7Efcc699eaf53a88730Aa6B54FC94C727d002d",
-    morkToken: (process.env.NEXT_PUBLIC_BNB_MORK_TOKEN as `0x${string}`) ?? "0x4b79ca9c9ccb99b4d31bd3d56a4cc7d1f69c262c",
+    airdropContract: ((process.env.NEXT_PUBLIC_BNB_AIRDROP ?? "").trim() || "0xfb7Efcc699eaf53a88730Aa6B54FC94C727d002d") as `0x${string}`,
+    morkToken: ((process.env.NEXT_PUBLIC_BNB_MORK_TOKEN ?? "").trim() || "0x4b79ca9c9ccb99b4d31bd3d56a4cc7d1f69c262c") as `0x${string}`,
     swapRouter: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
     wnative: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     quoter: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",

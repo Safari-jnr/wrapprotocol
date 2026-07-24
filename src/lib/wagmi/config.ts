@@ -1,5 +1,3 @@
-"use client";
-
 // ─── Wagmi + RainbowKit config ────────────────────────────────────────────────
 // All connectors and createConfig() live inside makeConfig() — nothing runs at
 // module scope. This ensures WalletConnect Core is only initialised once
