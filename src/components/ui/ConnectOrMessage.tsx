@@ -86,7 +86,7 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
 
   function openWalletConnect() {
     setOpenWithNotify(false);
-    setTimeout(() => openConnectModal?.(), 100);
+    openConnectModal?.();
   }
 
   if (!mounted) {
@@ -102,7 +102,15 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
     <div ref={ref} className="relative inline-flex flex-col items-center w-full max-w-sm sm:max-w-none">
       {/* ── Main button ── */}
       <button
-        onClick={() => setOpenWithNotify(!open)}
+        onClick={() => {
+          // On mobile (touch), go directly to RainbowKit modal — skip dropdown.
+          // On desktop, toggle the dropdown as usual.
+          if (window.matchMedia("(pointer: coarse)").matches && !isConnected) {
+            openConnectModal?.();
+            return;
+          }
+          setOpenWithNotify(!open);
+        }}
         className={`group inline-flex items-center justify-center gap-2 rounded-full border px-5 sm:px-10 py-2.5 sm:py-4 text-sm sm:text-lg font-bold transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-auto ${
           isConnected
             ? "bg-success/15 border-success/30 text-success hover:bg-success/20 hover:shadow-success/20"
