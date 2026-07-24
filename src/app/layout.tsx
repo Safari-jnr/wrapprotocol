@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { WagmiProvider } from "@/components/providers/WagmiProvider";
-import { SolanaProvider } from "@/components/providers/SolanaProvider";
-import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
+import { Web3Providers } from "@/components/providers/Web3Providers";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 import { WalletConnectToast } from "@/components/ui/WalletConnectToast";
@@ -32,16 +30,12 @@ export default function RootLayout({
           All are "use client" components so they hydrate on the client.
           suppressHydrationWarning on body prevents wallet adapter SSR mismatches.
         */}
-        <WagmiProvider>
-          <SolanaProvider>
-            <SupabaseProvider>
-              <Navbar />
-              <WalletConnectToast />
-              <main className="flex-1 pt-16">{children}</main>
-              <Footer />
-            </SupabaseProvider>
-          </SolanaProvider>
-        </WagmiProvider>
+        <Web3Providers>
+          <Navbar />
+          <WalletConnectToast />
+          <main className="flex-1 pt-16">{children}</main>
+          <Footer />
+        </Web3Providers>
       </body>
     </html>
   );
