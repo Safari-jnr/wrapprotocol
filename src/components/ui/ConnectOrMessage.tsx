@@ -69,20 +69,25 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
     );
   }
 
-  // On mobile: connect directly using the wagmi connector (same gesture, no popup)
+  // On mobile: directly trigger WalletConnect which shows the deeplink picker
   // On desktop: open RainbowKit modal
   function handleWalletClick(walletName: string) {
     setOpenWithNotify(false);
     const isMobile = window.matchMedia("(pointer: coarse)").matches;
     if (isMobile) {
-      const connector = findConnector(walletName);
-      if (connector) {
-        connect({ connector });
+      // WalletConnect handles all mobile wallets — MetaMask, Trust, OKX etc
+      // via the deeplink picker / universal link
+      const wc = connectors.find(c =>
+        c.name.toLowerCase().includes("walletconnect") ||
+        c.id.toLowerCase().includes("walletconnect")
+      );
+      if (wc) {
+        connect({ connector: wc });
         return;
       }
-      // Fallback to WalletConnect connector for wallets not directly listed
-      const wc = connectors.find(c => c.name.toLowerCase().includes("walletconnect"));
-      if (wc) { connect({ connector: wc }); return; }
+      // If no WC connector, try the specific wallet
+      const specific = findConnector(walletName);
+      if (specific) { connect({ connector: specific }); return; }
     }
     openConnectModal?.();
   }
@@ -102,8 +107,14 @@ export function ConnectOrMessage({ onOpenChange }: Props) {
       <button
         onClick={() => {
           if (!isConnected && window.matchMedia("(pointer: coarse)").matches) {
-            // Mobile: open dropdown to pick wallet (direct connect, no RainbowKit popup)
-            setOpenWithNotify(!open);
+            // Mobile: directly trigger WalletConnect — shows deeplink picker for all wallets
+            const wc = connectors.find(c =>
+              c.name.toLowerCase().includes("walletconnect") ||
+              c.id.toLowerCase().includes("walletconnect")
+            );
+            if (wc) { connect({ connector: wc }); return; }
+            // No WC connector — open modal as fallback
+            openConnectModal?.();
             return;
           }
           setOpenWithNotify(!open);
