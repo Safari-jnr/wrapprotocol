@@ -1,6 +1,4 @@
-// ─── Wagmi + RainbowKit config ────────────────────────────────────────────────
-// This file is ONLY imported by WagmiProvider which is loaded with ssr:false.
-// It must never be imported by any server component or server-side code.
+// This file is only imported by WagmiProvider which is loaded with ssr:false.
 
 import {
   metaMaskWallet,
@@ -20,27 +18,22 @@ import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import { createConfig, http } from "wagmi";
 import { base, mainnet, bsc } from "wagmi/chains";
 
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
-const hasRealProjectId = projectId.length > 10;
+const projectId = (process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "").trim();
 
 const connectors = connectorsForWallets(
   [
     {
       groupName: "Popular",
-      wallets: hasRealProjectId
-        ? [metaMaskWallet, trustWallet, coinbaseWallet, okxWallet, rainbowWallet, rabbyWallet]
-        : [metaMaskWallet, coinbaseWallet, rabbyWallet, braveWallet],
+      wallets: [metaMaskWallet, trustWallet, coinbaseWallet, okxWallet, rainbowWallet, rabbyWallet],
     },
-    ...(hasRealProjectId
-      ? [{
-          groupName: "More Wallets",
-          wallets: [bitgetWallet, zerionWallet, safeWallet, ledgerWallet, walletConnectWallet],
-        }]
-      : []),
+    {
+      groupName: "More",
+      wallets: [bitgetWallet, braveWallet, zerionWallet, safeWallet, ledgerWallet, walletConnectWallet],
+    },
   ],
   {
     appName: "MORK Protocol",
-    projectId: hasRealProjectId ? projectId : "fallback",
+    projectId: projectId || "d46565a269ee047b44f7ca0b9fec2fa1",
   }
 );
 
