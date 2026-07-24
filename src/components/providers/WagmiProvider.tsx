@@ -16,7 +16,9 @@ const queryClient = new QueryClient({
 
 export function WagmiProvider({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProviderBase config={wagmiConfig} reconnectOnMount={false}>
+    // reconnectOnMount: keep true so returning users stay connected —
+    // but the singleton config prevents WalletConnect double-init.
+    <WagmiProviderBase config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           initialChain={base}
@@ -25,6 +27,7 @@ export function WagmiProvider({ children }: { children: React.ReactNode }) {
             accentColorForeground: "white",
             borderRadius: "medium",
           })}
+          modalSize="compact"
         >
           {children}
         </RainbowKitProvider>
