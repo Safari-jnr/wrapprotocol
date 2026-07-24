@@ -28,36 +28,41 @@ function makeConfig() {
   if (_config) return _config;
 
   const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+  const hasRealProjectId = projectId.length > 10; // "fallback" and empty both fail this
+
+  // Wallets that work WITHOUT WalletConnect (desktop extension injection only)
+  const extensionOnlyWallets = [
+    metaMaskWallet,
+    coinbaseWallet,
+    rabbyWallet,
+    braveWallet,
+  ];
+
+  // Wallets that REQUIRE WalletConnect (mobile deeplinks, QR codes)
+  const walletConnectWallets = [
+    trustWallet,
+    okxWallet,
+    bitgetWallet,
+    rainbowWallet,
+    zerionWallet,
+    imTokenWallet,
+    safeWallet,
+    ledgerWallet,
+    walletConnectWallet,
+  ];
 
   const connectors = connectorsForWallets(
     [
       {
         groupName: "Popular",
-        wallets: [
-          metaMaskWallet,
-          trustWallet,
-          coinbaseWallet,
-          rabbyWallet,
-          rainbowWallet,
-        ],
-      },
-      {
-        groupName: "More Wallets",
-        wallets: [
-          okxWallet,
-          bitgetWallet,
-          braveWallet,
-          zerionWallet,
-          imTokenWallet,
-          safeWallet,
-          ledgerWallet,
-          walletConnectWallet,
-        ],
+        wallets: hasRealProjectId
+          ? [...extensionOnlyWallets, ...walletConnectWallets]
+          : extensionOnlyWallets,
       },
     ],
     {
       appName: "MORK Protocol",
-      projectId: projectId || "fallback",
+      projectId: hasRealProjectId ? projectId : "fallback",
     }
   );
 
